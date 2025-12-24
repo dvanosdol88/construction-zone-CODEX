@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   CATEGORY_STRUCTURE,
   Category,
@@ -6,7 +6,7 @@ import {
   Stage,
   useIdeaStore,
 } from './ideaStore';
-import { Search, Plus, Sparkles, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, Plus, Sparkles, ChevronDown, ChevronUp, Loader2, AlertCircle } from 'lucide-react';
 import GeminiSidebar from './components/GeminiSidebar';
 import CollapsibleSection from './components/CollapsibleSection';
 import CardDetailModal from './components/CardDetailModal';
@@ -19,9 +19,14 @@ const STAGE_LABELS: Record<Stage, string> = {
 };
 
 export default function ConstructionZone() {
-  const { ideas, addIdea, updateIdea, setIdeaStage, toggleIdeaPinned } = useIdeaStore();
+  const { ideas, isLoading, error, loadIdeas, addIdea, updateIdea, setIdeaStage, toggleIdeaPinned, toggleIdeaFocus } = useIdeaStore();
 
   const [activeTab, setActiveTab] = useState<Category>('A');
+
+  // Load ideas from Firebase on mount
+  useEffect(() => {
+    loadIdeas();
+  }, [loadIdeas]);
   const [activePage, setActivePage] = useState<string>(CATEGORY_STRUCTURE['A'].pages[0]);
   const [searchQuery, setSearchQuery] = useState('');
   const [geminiOpen, setGeminiOpen] = useState(false);
@@ -36,6 +41,7 @@ export default function ConstructionZone() {
 
   const filteredItems = useMemo(() => {
     return ideas.filter((idea) => {
+      if (!idea || !idea.text) return false;
       const matchesContext = idea.category === activeTab && idea.subcategory === activePage;
       const matchesSearch = idea.text.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesContext && matchesSearch;
@@ -96,8 +102,13 @@ export default function ConstructionZone() {
     const stageName = STAGE_LABELS[idea.stage];
     const displayName = stageName.replace(/^\d+_/, '').replace(/_/g, ' ');
 
+    const isFocused = idea.focused === true && idea.stage === 'workshopping';
+    const focusClasses = isFocused
+      ? 'border-4 border-red-500 focus-pulse'
+      : 'border border-slate-200';
+
     return (
-      <div className="bg-white border border-slate-200 rounded-md shadow-sm hover:shadow-md hover:border-slate-300 p-3 space-y-2 transition-shadow group cursor-pointer" onClick={() => setSelectedIdeaId(idea.id)}>
+      <div className={`bg-white ${focusClasses} rounded-md shadow-sm hover:shadow-md hover:border-slate-300 p-3 space-y-2 transition-shadow group cursor-pointer`} onClick={() => setSelectedIdeaId(idea.id)}>
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
             <div className="text-[10px] uppercase tracking-wide text-slate-400 font-medium">
@@ -130,6 +141,18 @@ export default function ConstructionZone() {
               className={actionButtonClass}
             >
               Move to Current best
+            </button>
+          )}
+
+          {idea.stage === 'workshopping' && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleIdeaFocus(idea.id, idea.category, idea.subcategory);
+              }}
+              className={actionButtonClass}
+            >
+              {idea.focused ? 'Unfocus' : 'Focus'}
             </button>
           )}
 
@@ -287,6 +310,34 @@ export default function ConstructionZone() {
               </p>
             </div>
 
+            {/* Loading State */}
+            {isLoading && (
+              <div className="flex flex-col items-center justify-center py-20">
+                <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
+                <p className="text-slate-500 font-medium">Loading ideas...</p>
+              </div>
+            )}
+
+            {/* Error State */}
+            {error && !isLoading && (
+              <div className="flex flex-col items-center justify-center py-20">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center max-w-md">
+                  <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-4" />
+                  <p className="text-red-700 font-medium mb-2">Connection Error</p>
+                  <p className="text-red-600 text-sm mb-4">{error}</p>
+                  <button
+                    onClick={() => loadIdeas()}
+                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Main Content */}
+            {!isLoading && !error && (
+              <>
             <CollapsibleSection
               title="Current best"
               subtitle="Pinned or marked current best"
@@ -366,6 +417,8 @@ export default function ConstructionZone() {
                 </button>
               </form>
             </div>
+              </>
+            )}
           </div>
         </main>
 

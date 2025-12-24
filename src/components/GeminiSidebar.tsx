@@ -22,6 +22,7 @@ const GeminiSidebar: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
+
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
@@ -35,7 +36,7 @@ const GeminiSidebar: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         setIsLoading(true);
 
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
             
             // Construct context from current ideas
             const ideaContext = ideas.map(i => 
@@ -54,7 +55,7 @@ const GeminiSidebar: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             `;
 
             const response = await ai.models.generateContent({
-                model: 'gemini-3-flash-preview',
+                model: 'gemini-2.0-flash',
                 contents: systemPrompt,
             });
 
@@ -86,13 +87,13 @@ const GeminiSidebar: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
         // We re-use the logic but with a specific prompt
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
              const ideaContext = ideas.map(i => 
                 `- [${i.category}] (${i.type}): ${i.text}`
             ).join('\n');
 
              const response = await ai.models.generateContent({
-                model: 'gemini-3-flash-preview',
+                model: 'gemini-2.0-flash',
                 contents: `Context: ${ideaContext}\n\nTask: ${prompt}`,
             });
 

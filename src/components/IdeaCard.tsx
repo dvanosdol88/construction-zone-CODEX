@@ -23,7 +23,7 @@ const IdeaCard: React.FC<IdeaCardProps> = ({ idea }) => {
     };
 
     return (
-        <div className={`bg-white p-4 rounded-lg shadow-sm border-l-4 transition-all hover:shadow-md ${idea.type === 'question' ? 'border-orange-400' : 'border-blue-500'}`}>
+        <div className={`bg-white p-4 rounded-lg shadow-sm border-l-4 transition-all duration-200 hover:shadow-md hover:-translate-y-1 h-full flex flex-col ${idea.type === 'question' ? 'border-orange-400' : 'border-blue-500'}`}>
             <div className="flex justify-between items-start gap-3">
                 <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
