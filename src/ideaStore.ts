@@ -45,6 +45,7 @@ export interface Idea {
   goal: string;
   images: string[];
   notes: { id: string; text: string; timestamp: number }[];
+  linkedDocuments: string[];
 }
 
 type IdeaInput = Omit<Idea, 'id' | 'timestamp' | 'pinned' | 'stage'> &
@@ -64,6 +65,8 @@ interface IdeaStore {
   setIdeaStage: (id: string, stage: Stage) => Promise<void>;
   toggleIdeaPinned: (id: string) => Promise<void>;
   toggleIdeaFocus: (id: string, category: Category, subcategory: string) => Promise<void>;
+  linkDocument: (ideaId: string, docId: string) => Promise<void>;
+  unlinkDocument: (ideaId: string, docId: string) => Promise<void>;
 }
 
 const SEED_DATA: Idea[] = [
@@ -80,6 +83,7 @@ const SEED_DATA: Idea[] = [
     goal: '',
     images: [],
     notes: [],
+    linkedDocuments: [],
   },
   {
     id: '2',
@@ -94,6 +98,7 @@ const SEED_DATA: Idea[] = [
     goal: '',
     images: [],
     notes: [],
+    linkedDocuments: [],
   },
 ];
 
@@ -142,6 +147,7 @@ export const useIdeaStore = create<IdeaStore>()((set, get) => ({
       goal: ideaInput.goal ?? '',
       images: ideaInput.images ?? [],
       notes: ideaInput.notes ?? [],
+      linkedDocuments: ideaInput.linkedDocuments ?? [],
     };
 
     // Optimistic update
@@ -254,6 +260,60 @@ export const useIdeaStore = create<IdeaStore>()((set, get) => ({
       console.error('Failed to update focus in Firebase:', error);
       // Reload from Firebase to get correct state
       get().loadIdeas();
+    }
+  },
+
+  linkDocument: async (ideaId, docId) => {
+    const { ideas } = get();
+    const idea = ideas.find((i) => i.id === ideaId);
+    if (!idea) return;
+
+    const linkedDocuments = [...(idea.linkedDocuments || []), docId];
+
+    // Optimistic update
+    set((state) => ({
+      ideas: state.ideas.map((i) =>
+        i.id === ideaId ? { ...i, linkedDocuments } : i
+      ),
+    }));
+
+    try {
+      await firebaseService.updateIdea(ideaId, { linkedDocuments });
+    } catch (error) {
+      console.error('Failed to link document:', error);
+      // Rollback
+      set((state) => ({
+        ideas: state.ideas.map((i) =>
+          i.id === ideaId ? { ...i, linkedDocuments: idea.linkedDocuments } : i
+        ),
+      }));
+    }
+  },
+
+  unlinkDocument: async (ideaId, docId) => {
+    const { ideas } = get();
+    const idea = ideas.find((i) => i.id === ideaId);
+    if (!idea) return;
+
+    const linkedDocuments = (idea.linkedDocuments || []).filter((id) => id !== docId);
+
+    // Optimistic update
+    set((state) => ({
+      ideas: state.ideas.map((i) =>
+        i.id === ideaId ? { ...i, linkedDocuments } : i
+      ),
+    }));
+
+    try {
+      await firebaseService.updateIdea(ideaId, { linkedDocuments });
+    } catch (error) {
+      console.error('Failed to unlink document:', error);
+      // Rollback
+      set((state) => ({
+        ideas: state.ideas.map((i) =>
+          i.id === ideaId ? { ...i, linkedDocuments: idea.linkedDocuments } : i
+        ),
+      }));
     }
   },
 }));

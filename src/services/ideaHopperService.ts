@@ -1,0 +1,98 @@
+import {
+  collection,
+  doc,
+  getDocs,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+} from 'firebase/firestore';
+import { db } from '../firebaseConfig';
+
+const COLLECTION_NAME = 'idea_hopper';
+
+export interface HopperIdea {
+  id: string;
+  title: string;
+  description: string;
+  referenceUrl?: string;
+  createdAt: number;
+  updatedAt: number;
+  status: 'new' | 'exploring' | 'developing' | 'implemented' | 'parked';
+  priority: 'low' | 'medium' | 'high';
+  tags: string[];
+  notes: string;
+}
+
+/**
+ * Get all hopper ideas from Firestore
+ */
+export async function getHopperIdeas(): Promise<HopperIdea[]> {
+  const ideasCollection = collection(db, COLLECTION_NAME);
+  const snapshot = await getDocs(ideasCollection);
+
+  return snapshot.docs.map((doc) => ({
+    ...doc.data(),
+    id: doc.id,
+  })) as HopperIdea[];
+}
+
+/**
+ * Add a new hopper idea
+ */
+export async function addHopperIdea(idea: Omit<HopperIdea, 'id'>): Promise<HopperIdea> {
+  const id = crypto.randomUUID();
+  const newIdea: HopperIdea = {
+    ...idea,
+    id,
+  };
+
+  const docRef = doc(db, COLLECTION_NAME, id);
+  await setDoc(docRef, newIdea);
+
+  return newIdea;
+}
+
+/**
+ * Update an existing hopper idea
+ */
+export async function updateHopperIdea(
+  id: string,
+  updates: Partial<HopperIdea>
+): Promise<void> {
+  const docRef = doc(db, COLLECTION_NAME, id);
+  await updateDoc(docRef, { ...updates, updatedAt: Date.now() });
+}
+
+/**
+ * Delete a hopper idea
+ */
+export async function deleteHopperIdea(id: string): Promise<void> {
+  const docRef = doc(db, COLLECTION_NAME, id);
+  await deleteDoc(docRef);
+}
+
+/**
+ * Seed initial ideas if the collection is empty
+ */
+export async function seedInitialIdeas(): Promise<HopperIdea[]> {
+  const existingIdeas = await getHopperIdeas();
+
+  if (existingIdeas.length > 0) {
+    return existingIdeas;
+  }
+
+  const seedIdea: Omit<HopperIdea, 'id'> = {
+    title: 'How it works overview',
+    description: 'Shows how the client and advisor will work together, and why this is such an effective solution.',
+    referenceUrl: 'https://youtu.be/k1UBwj1Fyog',
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    status: 'new',
+    priority: 'high',
+    tags: ['onboarding', 'client-experience', 'video'],
+    notes: '',
+  };
+
+  const newIdea = await addHopperIdea(seedIdea);
+  return [newIdea];
+}

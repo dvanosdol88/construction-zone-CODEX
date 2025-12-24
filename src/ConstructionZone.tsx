@@ -6,10 +6,14 @@ import {
   Stage,
   useIdeaStore,
 } from './ideaStore';
-import { Search, Plus, Sparkles, ChevronDown, ChevronUp, Loader2, AlertCircle } from 'lucide-react';
+import { Search, Plus, Sparkles, ChevronDown, ChevronUp, Loader2, AlertCircle, FolderOpen, Lightbulb } from 'lucide-react';
 import GeminiSidebar from './components/GeminiSidebar';
 import CollapsibleSection from './components/CollapsibleSection';
 import CardDetailModal from './components/CardDetailModal';
+import DocumentsView from './components/DocumentsView';
+import IdeaHopperView from './components/IdeaHopperView';
+
+type ActiveView = 'construction' | 'documents' | 'ideaHopper';
 
 const STAGE_LABELS: Record<Stage, string> = {
   current_best: '00_Current best',
@@ -21,6 +25,7 @@ const STAGE_LABELS: Record<Stage, string> = {
 export default function ConstructionZone() {
   const { ideas, isLoading, error, loadIdeas, addIdea, updateIdea, setIdeaStage, toggleIdeaPinned, toggleIdeaFocus } = useIdeaStore();
 
+  const [activeView, setActiveView] = useState<ActiveView>('construction');
   const [activeTab, setActiveTab] = useState<Category>('A');
 
   // Load ideas from Firebase on mount
@@ -35,6 +40,7 @@ export default function ConstructionZone() {
   const [selectedIdeaId, setSelectedIdeaId] = useState<string | null>(null);
 
   const handleTabChange = (tab: Category) => {
+    setActiveView('construction');
     setActiveTab(tab);
     setActivePage(CATEGORY_STRUCTURE[tab].pages[0]);
   };
@@ -232,7 +238,7 @@ export default function ConstructionZone() {
                 key={key}
                 onClick={() => handleTabChange(key)}
                 className={`px-4 py-4 text-sm font-medium transition-colors border-b-4 ${
-                  activeTab === key
+                  activeView === 'construction' && activeTab === key
                     ? 'border-blue-500 text-white bg-slate-800'
                     : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800'
                 }`}
@@ -241,6 +247,28 @@ export default function ConstructionZone() {
                 {CATEGORY_STRUCTURE[key].label}
               </button>
             ))}
+            <button
+              onClick={() => setActiveView('documents')}
+              className={`px-4 py-4 text-sm font-medium transition-colors border-b-4 flex items-center gap-2 ${
+                activeView === 'documents'
+                  ? 'border-blue-500 text-white bg-slate-800'
+                  : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+              }`}
+            >
+              <FolderOpen size={16} />
+              Documents
+            </button>
+            <button
+              onClick={() => setActiveView('ideaHopper')}
+              className={`px-4 py-4 text-sm font-medium transition-colors border-b-4 flex items-center gap-2 ${
+                activeView === 'ideaHopper'
+                  ? 'border-blue-500 text-white bg-slate-800'
+                  : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+              }`}
+            >
+              <Lightbulb size={16} />
+              Idea Hopper
+            </button>
           </div>
         </div>
 
@@ -267,6 +295,15 @@ export default function ConstructionZone() {
       </header>
 
       <div className="flex-1 flex overflow-hidden">
+        {/* Show Documents View */}
+        {activeView === 'documents' && <DocumentsView />}
+
+        {/* Show Idea Hopper View */}
+        {activeView === 'ideaHopper' && <IdeaHopperView />}
+
+        {/* Show Construction Zone */}
+        {activeView === 'construction' && (
+          <>
         <nav className="w-64 bg-gray-50 border-r border-gray-200 flex flex-col pt-6 pb-4 overflow-y-auto">
           <div className="px-6 mb-4 text-xs font-bold text-gray-400 uppercase tracking-wider">
             {CATEGORY_STRUCTURE[activeTab].label}
@@ -421,6 +458,8 @@ export default function ConstructionZone() {
             )}
           </div>
         </main>
+          </>
+        )}
 
         {geminiOpen && (
           <GeminiSidebar onClose={() => setGeminiOpen(false)} />

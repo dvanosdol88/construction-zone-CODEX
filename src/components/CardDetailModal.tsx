@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Plus, Trash2, Image as ImageIcon, Clock, Pin, Archive, ArrowRight, Sparkles } from 'lucide-react';
+import { X, Plus, Trash2, Image as ImageIcon, Clock, Pin, Archive, ArrowRight, FileText, Link2, Unlink } from 'lucide-react';
 import { Idea, Stage, useIdeaStore } from '../ideaStore';
+import { useDocumentStore, DocumentMeta } from '../documentStore';
+import DocumentPickerModal from './DocumentPickerModal';
 
 interface CardDetailModalProps {
   ideaId: string;
@@ -15,7 +17,8 @@ const STAGE_LABELS: Record<Stage, string> = {
 };
 
 export default function CardDetailModal({ ideaId, onClose }: CardDetailModalProps) {
-  const { ideas, updateIdea, toggleIdeaPinned, setIdeaStage, toggleIdeaFocus } = useIdeaStore();
+  const { ideas, updateIdea, toggleIdeaPinned, setIdeaStage, toggleIdeaFocus, linkDocument, unlinkDocument } = useIdeaStore();
+  const { documents, loadDocuments, linkToCard, unlinkFromCard } = useDocumentStore();
   const idea = ideas.find((i) => i.id === ideaId);
 
   const [title, setTitle] = useState(idea?.text || '');
@@ -23,8 +26,13 @@ export default function CardDetailModal({ ideaId, onClose }: CardDetailModalProp
   const [showGoalInput, setShowGoalInput] = useState(false);
   const [newNote, setNewNote] = useState('');
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [showDocumentPicker, setShowDocumentPicker] = useState(false);
 
   const modalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    loadDocuments();
+  }, [loadDocuments]);
 
   useEffect(() => {
     if (idea) {
@@ -34,6 +42,18 @@ export default function CardDetailModal({ ideaId, onClose }: CardDetailModalProp
   }, [idea?.id]);
 
   if (!idea) return null;
+
+  const linkedDocs = documents.filter((d) => (idea.linkedDocuments || []).includes(d.id));
+
+  const handleLinkDocument = async (docId: string) => {
+    await linkDocument(idea.id, docId);
+    await linkToCard(docId, idea.id);
+  };
+
+  const handleUnlinkDocument = async (docId: string) => {
+    await unlinkDocument(idea.id, docId);
+    await unlinkFromCard(docId, idea.id);
+  };
 
   const handleTitleBlur = () => {
     if (title.trim() && title !== idea.text) {
@@ -235,6 +255,61 @@ export default function CardDetailModal({ ideaId, onClose }: CardDetailModalProp
               </div>
             )}
           </section>
+
+          {/* Linked Documents Section */}
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Linked Documents</h3>
+              <button 
+                onClick={() => setShowDocumentPicker(true)}
+                className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1 rounded-full font-medium transition-colors flex items-center gap-1"
+              >
+                <Link2 size={14} /> Link Document
+              </button>
+            </div>
+
+            {linkedDocs.length > 0 ? (
+              <div className="space-y-2">
+                {linkedDocs.map((doc) => (
+                  <div
+                    key={doc.id}
+                    className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100 group"
+                  >
+                    <FileText size={20} className="text-slate-400 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-700 truncate">{doc.filename}</p>
+                      <p className="text-xs text-slate-400">
+                        {new Date(doc.uploadedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <a
+                      href={doc.storageUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      View
+                    </a>
+                    <button
+                      onClick={() => handleUnlinkDocument(doc.id)}
+                      className="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                      title="Unlink document"
+                    >
+                      <Unlink size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div 
+                onClick={() => setShowDocumentPicker(true)}
+                className="border-2 border-dashed border-slate-200 rounded-xl p-6 flex flex-col items-center justify-center text-slate-400 hover:border-blue-400 hover:text-blue-500 cursor-pointer transition-all"
+              >
+                <FileText size={28} className="mb-2" />
+                <span className="text-sm font-medium">+ Link a document</span>
+              </div>
+            )}
+          </section>
         </div>
 
         {/* Footer */}
@@ -296,6 +371,16 @@ export default function CardDetailModal({ ideaId, onClose }: CardDetailModalProp
           )}
         </div>
       </div>
+
+      {/* Document Picker Modal */}
+      {showDocumentPicker && (
+        <DocumentPickerModal
+          linkedDocIds={idea.linkedDocuments || []}
+          onLink={handleLinkDocument}
+          onUnlink={handleUnlinkDocument}
+          onClose={() => setShowDocumentPicker(false)}
+        />
+      )}
     </div>
   );
 }

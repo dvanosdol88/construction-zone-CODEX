@@ -1,8 +1,58 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 import { Sparkles, Send, X, Bot, Loader2, Settings, Database, Trash2, Plus } from 'lucide-react';
-import { useIdeaStore } from '../ideaStore';
+import { useIdeaStore, Category, CATEGORY_STRUCTURE, Stage } from '../ideaStore';
 import { useConsultantStore } from '../consultantStore';
+
+// Map human-readable category names to our Category codes
+const CATEGORY_MAP: Record<string, Category> = {
+    'client experience': 'A',
+    'operations': 'B',
+    'operations & tech': 'B',
+    'marketing': 'C',
+    'marketing & growth': 'C',
+    'logic': 'D',
+    'logic & compliance': 'D',
+    'compliance': 'D',
+    'a': 'A',
+    'b': 'B',
+    'c': 'C',
+    'd': 'D',
+};
+
+// --- GEMINI FUNCTION CALLING TOOL DEFINITION ---
+const createCardTool = {
+    name: "create_card",
+    description: "Creates a new card on the project board. Use this when the user asks to create, add, or generate cards/ideas/items.",
+    parameters: {
+        type: Type.OBJECT,
+        properties: {
+            text: {
+                type: Type.STRING,
+                description: "The card title/text describing the task or idea"
+            },
+            category: {
+                type: Type.STRING,
+                description: "The pillar/category. Must be one of: 'Client Experience', 'Operations', 'Marketing', 'Logic'"
+            },
+            subcategory: {
+                type: Type.STRING,
+                description: "The section within the category. For Client Experience: Onboarding, First Meeting, Year 1, Portal Design. For Operations: Wealthbox, RightCapital, Automation, Data Flows. For Marketing: Landing Page, Postcards, Fee Calculator, Messaging. For Logic: Asset Allocation, Models, ADV Filings, Policies."
+            },
+            stage: {
+                type: Type.STRING,
+                description: "The workflow stage. Default is 'workshopping'",
+                enum: ["workshopping", "ready_to_go", "current_best"]
+            },
+            cardType: {
+                type: Type.STRING,
+                description: "Whether this is an idea or a question. Default is 'idea'",
+                enum: ["idea", "question"]
+            }
+        },
+        required: ["text", "category", "subcategory"]
+    }
+};
 
 interface Message {
     id: string;
@@ -11,7 +61,7 @@ interface Message {
 }
 
 const GeminiSidebar: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-    const { ideas } = useIdeaStore();
+    const { ideas, addIdea } = useIdeaStore();
 
     // --- PERSISTED STATE (from Zustand + Firebase) ---
     const {
@@ -115,6 +165,7 @@ const GeminiSidebar: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             1. You possess a set of "Canonical Documents". These are the Single Source of Truth.
             2. If the user's Board State or Query contradicts the Canon, you must gently correct them.
             3. ADHERE STRICTLY to the Project Constraints. Do not suggest vendors on the restriction list.
+            4. When the user asks to create cards, add ideas, or generate items for the board, USE THE create_card FUNCTION to add them. You can call it multiple times to create multiple cards.
 
             --- THE CANON (IMMUTABLE TRUTH) ---
             ${canonContext}
@@ -137,11 +188,12 @@ const GeminiSidebar: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     parts: [{ text: m.text }]
                 }));
 
-            // 5. Execute API Call
-            const response = await ai.models.generateContent({
+            // 5. Execute API Call with Function Calling Tools
+            const result = await ai.models.generateContent({
                 model: 'gemini-2.0-flash',
                 config: {
                     systemInstruction: { parts: [{ text: systemInstruction }] },
+                    tools: [{ functionDeclarations: [createCardTool] }],
                 },
                 contents: [
                     ...historyContents,
@@ -149,12 +201,90 @@ const GeminiSidebar: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 ]
             });
 
-            const responseText = response.text() || "I couldn't generate a response.";
+            // 6. Process the response - check for function calls
+            const createdCards: string[] = [];
+            let hasTextResponse = false;
+            let textResponse = '';
+
+            // Access the response candidates
+            const candidates = result.candidates;
+            if (candidates && candidates.length > 0) {
+                const parts = candidates[0].content?.parts || [];
+
+                for (const part of parts) {
+                    // Check if this part is a function call
+                    if (part.functionCall) {
+                        const { name, args } = part.functionCall;
+
+                        if (name === 'create_card' && args) {
+                            // Execute the create_card function
+                            const cardArgs = args as {
+                                text: string;
+                                category: string;
+                                subcategory: string;
+                                stage?: string;
+                                cardType?: string;
+                            };
+
+                            // Map category name to code
+                            const categoryCode = CATEGORY_MAP[cardArgs.category.toLowerCase()] || 'B';
+
+                            // Validate subcategory
+                            const validSubcategories = CATEGORY_STRUCTURE[categoryCode].pages;
+                            const subcategory = validSubcategories.includes(cardArgs.subcategory)
+                                ? cardArgs.subcategory
+                                : validSubcategories[0];
+
+                            // Map stage
+                            const stageMap: Record<string, Stage> = {
+                                'workshopping': 'workshopping',
+                                'ready_to_go': 'ready_to_go',
+                                'current_best': 'current_best',
+                            };
+                            const stage = stageMap[cardArgs.stage || 'workshopping'] || 'workshopping';
+
+                            await addIdea({
+                                text: cardArgs.text,
+                                category: categoryCode,
+                                subcategory: subcategory,
+                                stage: stage,
+                                type: (cardArgs.cardType as 'idea' | 'question') || 'idea',
+                                goal: '',
+                                images: [],
+                                notes: [],
+                                linkedDocuments: [],
+                            });
+
+                            createdCards.push(`• ${cardArgs.text} → ${CATEGORY_STRUCTURE[categoryCode].label} / ${subcategory}`);
+                        }
+                    }
+
+                    // Check if this part is text
+                    if (part.text) {
+                        hasTextResponse = true;
+                        textResponse += part.text;
+                    }
+                }
+            }
+
+            // 7. Build the response message
+            let finalMessage = '';
+
+            if (createdCards.length > 0) {
+                finalMessage = `✅ Created ${createdCards.length} card${createdCards.length > 1 ? 's' : ''} on your board:\n\n${createdCards.join('\n')}`;
+                if (hasTextResponse && textResponse.trim()) {
+                    finalMessage += `\n\n${textResponse}`;
+                }
+            } else if (hasTextResponse) {
+                finalMessage = textResponse;
+            } else {
+                finalMessage = "I couldn't generate a response.";
+            }
 
             const modelMsg: Message = {
                 id: crypto.randomUUID(),
                 role: 'model',
-                text: responseText
+                text: finalMessage
             };
             setMessages(prev => [...prev, modelMsg]);
 
