@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { Sparkles, Send, X, Bot, Loader2, Settings, Database, Trash2, Plus } from 'lucide-react';
 import { useIdeaStore } from '../ideaStore';
+import { useConsultantStore } from '../consultantStore';
 
 interface Message {
     id: string;
@@ -9,22 +10,26 @@ interface Message {
     text: string;
 }
 
-interface CanonDoc {
-    id: string;
-    title: string;
-    content: string;
-}
-
 const GeminiSidebar: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const { ideas } = useIdeaStore();
 
+    // --- PERSISTED STATE (from Zustand + Firebase) ---
+    const {
+        canonDocs,
+        isCanonLoading,
+        addCanonDoc,
+        deleteCanonDoc,
+        userContext,
+        projectConstraints,
+        isSettingsLoading,
+        saveSettings,
+        loadAll,
+    } = useConsultantStore();
+
     // --- VIEW STATE ---
-    // 'chat' = Main Interface
-    // 'canon' = Knowledge Base (Master Index, etc.)
-    // 'settings' = User Profile & Constraints
     const [activeView, setActiveView] = useState<'chat' | 'settings' | 'canon'>('chat');
 
-    // --- CHAT STATE ---
+    // --- CHAT STATE (Local only - not persisted) ---
     const [messages, setMessages] = useState<Message[]>([
         { id: 'welcome', role: 'model', text: "Hello David! I am aligned with your Master Index and constraints. How shall we proceed?" }
     ]);
@@ -32,28 +37,26 @@ const GeminiSidebar: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    // --- SETTINGS STATE (With "Do Not Use" Defaults) ---
-    const [userContext, setUserContext] = useState(
-        "I am David, a CFA & CFP professional. I prefer concise, technical answers. I am building a technology-first RIA."
-    );
-    const [projectConstraints, setProjectConstraints] = useState(
-        `Budget: Low-cost/Bootstrapped.
-Timeline: Launch in 3 months.
-Location: Connecticut.
-Key Tech: Wealthbox, Altruist.
+    // --- LOCAL SETTINGS FORM STATE (for editing before save) ---
+    const [editUserContext, setEditUserContext] = useState(userContext);
+    const [editProjectConstraints, setEditProjectConstraints] = useState(projectConstraints);
 
-STRICT RESTRICTIONS (DO NOT USE/SUGGEST):
-- Vendors: Advyzon, FP Alpha, Salesforce.
-- Tools: Notion, Figma.`
-    );
-
-    // --- KNOWLEDGE BASE (CANON) STATE ---
-    // Initialize with a placeholder Master Index
-    const [canonDocs, setCanonDocs] = useState<CanonDoc[]>([
-        { id: '1', title: 'Master Index', content: '1. Compliance First.\n2. Tech-enabled workflows.\n3. Low overhead.' }
-    ]);
+    // --- NEW DOC FORM STATE ---
     const [newDocTitle, setNewDocTitle] = useState('');
     const [newDocContent, setNewDocContent] = useState('');
+
+    // --- EFFECTS ---
+
+    // Load data from Firebase on mount
+    useEffect(() => {
+        loadAll();
+    }, [loadAll]);
+
+    // Sync local form state when store values change (after load)
+    useEffect(() => {
+        setEditUserContext(userContext);
+        setEditProjectConstraints(projectConstraints);
+    }, [userContext, projectConstraints]);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -65,19 +68,20 @@ STRICT RESTRICTIONS (DO NOT USE/SUGGEST):
         }
     }, [messages, activeView]);
 
-    // --- CANON MANAGEMENT HELPERS ---
-    const addDoc = () => {
+    // --- HANDLERS ---
+
+    const handleAddDoc = () => {
         if (!newDocTitle.trim() || !newDocContent.trim()) return;
-        setCanonDocs(prev => [...prev, { id: crypto.randomUUID(), title: newDocTitle, content: newDocContent }]);
+        addCanonDoc(newDocTitle.trim(), newDocContent.trim());
         setNewDocTitle('');
         setNewDocContent('');
     };
 
-    const deleteDoc = (id: string) => {
-        setCanonDocs(prev => prev.filter(d => d.id !== id));
+    const handleSaveSettings = () => {
+        saveSettings(editUserContext, editProjectConstraints);
+        setActiveView('chat');
     };
 
-    // --- MAIN LOGIC ---
     const handleSend = async () => {
         if (!input.trim() || isLoading) return;
 
@@ -98,12 +102,12 @@ STRICT RESTRICTIONS (DO NOT USE/SUGGEST):
                 weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
             });
 
-            // 2. Prepare Canon Context (The Constitution)
+            // 2. Prepare Canon Context (The Constitution) - FROM FIREBASE
             const canonContext = canonDocs.map(doc =>
                 `DOCUMENT: ${doc.title.toUpperCase()}\nCONTENT:\n${doc.content}\n---`
             ).join('\n');
 
-            // 3. Construct the System Instruction
+            // 3. Construct the System Instruction (using persisted settings)
             const systemInstruction = `
             Role: You are the Guardian of the RIA Project. You are an expert Consultant.
 
@@ -125,7 +129,7 @@ STRICT RESTRICTIONS (DO NOT USE/SUGGEST):
             ${ideaContext}
             `;
 
-            // 4. Prepare History (Memory)
+            // 4. Prepare History (Memory) - local messages only
             const historyContents = messages
                 .filter(m => m.id !== 'welcome')
                 .map(m => ({
@@ -166,6 +170,9 @@ STRICT RESTRICTIONS (DO NOT USE/SUGGEST):
         }
     };
 
+    // --- LOADING STATE ---
+    const isDataLoading = isCanonLoading || isSettingsLoading;
+
     return (
         <div className="flex flex-col h-full bg-white border-l border-gray-200 shadow-xl w-96 fixed right-0 top-0 z-50">
             {/* Header */}
@@ -205,8 +212,18 @@ STRICT RESTRICTIONS (DO NOT USE/SUGGEST):
                 </button>
             </div>
 
+            {/* Loading Overlay */}
+            {isDataLoading && (
+                <div className="flex-1 flex items-center justify-center bg-gray-50">
+                    <div className="text-center">
+                        <Loader2 size={24} className="animate-spin text-indigo-500 mx-auto mb-2" />
+                        <p className="text-sm text-gray-500">Loading Knowledge Base...</p>
+                    </div>
+                </div>
+            )}
+
             {/* --- VIEW: CHAT --- */}
-            {activeView === 'chat' && (
+            {!isDataLoading && activeView === 'chat' && (
                 <>
                     <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
                         {messages.map((msg) => (
@@ -255,10 +272,10 @@ STRICT RESTRICTIONS (DO NOT USE/SUGGEST):
             )}
 
             {/* --- VIEW: CANON (KNOWLEDGE BASE) --- */}
-            {activeView === 'canon' && (
+            {!isDataLoading && activeView === 'canon' && (
                 <div className="flex-1 p-4 bg-gray-50 overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
                     <h3 className="text-sm font-bold text-gray-700 mb-2">Canonical Documents</h3>
-                    <p className="text-xs text-gray-500 mb-4">The AI will strictly align all advice with these documents.</p>
+                    <p className="text-xs text-gray-500 mb-4">The AI will strictly align all advice with these documents. Changes are saved automatically.</p>
 
                     {/* List of Docs */}
                     <div className="space-y-3 mb-6">
@@ -266,7 +283,7 @@ STRICT RESTRICTIONS (DO NOT USE/SUGGEST):
                             <div key={doc.id} className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm group">
                                 <div className="flex justify-between items-start mb-2">
                                     <span className="font-bold text-indigo-700 text-sm">{doc.title}</span>
-                                    <button onClick={() => deleteDoc(doc.id)} className="text-gray-300 hover:text-red-500">
+                                    <button onClick={() => deleteCanonDoc(doc.id)} className="text-gray-300 hover:text-red-500">
                                         <Trash2 size={14} />
                                     </button>
                                 </div>
@@ -275,6 +292,9 @@ STRICT RESTRICTIONS (DO NOT USE/SUGGEST):
                                 </div>
                             </div>
                         ))}
+                        {canonDocs.length === 0 && (
+                            <p className="text-sm text-gray-400 italic">No documents yet. Add your Master Index below.</p>
+                        )}
                     </div>
 
                     {/* Add New Doc */}
@@ -293,7 +313,7 @@ STRICT RESTRICTIONS (DO NOT USE/SUGGEST):
                             onChange={(e) => setNewDocContent(e.target.value)}
                         />
                         <button
-                            onClick={addDoc}
+                            onClick={handleAddDoc}
                             disabled={!newDocTitle || !newDocContent}
                             className="w-full py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm flex items-center justify-center gap-2 disabled:opacity-50"
                         >
@@ -304,7 +324,7 @@ STRICT RESTRICTIONS (DO NOT USE/SUGGEST):
             )}
 
             {/* --- VIEW: SETTINGS --- */}
-            {activeView === 'settings' && (
+            {!isDataLoading && activeView === 'settings' && (
                 <div className="flex-1 p-4 space-y-6 overflow-y-auto bg-gray-50 animate-in fade-in zoom-in-95 duration-200">
                     <div>
                         <h3 className="text-sm font-bold text-gray-700 mb-4 border-b pb-2">Consultant Configuration</h3>
@@ -313,8 +333,8 @@ STRICT RESTRICTIONS (DO NOT USE/SUGGEST):
                             Who are you? (Context)
                         </label>
                         <textarea
-                            value={userContext}
-                            onChange={(e) => setUserContext(e.target.value)}
+                            value={editUserContext}
+                            onChange={(e) => setEditUserContext(e.target.value)}
                             className="w-full h-24 p-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none shadow-sm"
                         />
                     </div>
@@ -324,8 +344,8 @@ STRICT RESTRICTIONS (DO NOT USE/SUGGEST):
                             Project Rules & Restrictions
                         </label>
                         <textarea
-                            value={projectConstraints}
-                            onChange={(e) => setProjectConstraints(e.target.value)}
+                            value={editProjectConstraints}
+                            onChange={(e) => setEditProjectConstraints(e.target.value)}
                             className="w-full h-48 p-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none shadow-sm font-mono"
                         />
                         <p className="text-xs text-gray-400 mt-1">
@@ -335,10 +355,10 @@ STRICT RESTRICTIONS (DO NOT USE/SUGGEST):
 
                     <div className="pt-4 border-t border-gray-200">
                         <button
-                            onClick={() => setActiveView('chat')}
+                            onClick={handleSaveSettings}
                             className="w-full py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium transition-colors shadow-sm"
                         >
-                            Return to Chat
+                            Save Settings
                         </button>
                     </div>
                 </div>
