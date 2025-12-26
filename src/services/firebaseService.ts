@@ -11,6 +11,23 @@ import { db } from '../firebaseConfig';
 import type { Idea, Category } from '../ideaStore';
 
 const COLLECTION_NAME = 'ideas';
+const CUSTOM_PAGES_COLLECTION = 'customPages';
+const PAGE_ORDERS_COLLECTION = 'pageOrders';
+
+// Custom Page type for user-created pages within categories
+export interface CustomPage {
+  id: string;
+  category: Category;
+  pageName: string;
+  description: string;
+  createdAt: number;
+  updatedAt?: number;
+}
+
+export interface PageOrder {
+  category: Category;
+  orderedPages: string[];
+}
 
 /**
  * Get all ideas from Firestore
@@ -70,12 +87,117 @@ export async function batchUpdateIdeas(
  */
 export async function seedInitialData(seedData: Idea[]): Promise<void> {
   const batch = writeBatch(db);
-  
+
   for (const idea of seedData) {
     const docRef = doc(db, COLLECTION_NAME, idea.id);
     batch.set(docRef, idea);
   }
-  
+
   await batch.commit();
+}
+
+// ============================================
+// CUSTOM PAGES CRUD OPERATIONS
+// ============================================
+
+/**
+ * Get all custom pages from Firestore
+ */
+export async function getCustomPages(): Promise<CustomPage[]> {
+  const pagesCollection = collection(db, CUSTOM_PAGES_COLLECTION);
+  const snapshot = await getDocs(pagesCollection);
+
+  return snapshot.docs.map((doc) => ({
+    ...doc.data(),
+    id: doc.id,
+  })) as CustomPage[];
+}
+
+/**
+ * Add a new custom page to Firestore
+ */
+export async function addCustomPage(page: CustomPage): Promise<void> {
+  const docRef = doc(db, CUSTOM_PAGES_COLLECTION, page.id);
+  await setDoc(docRef, page);
+}
+
+/**
+ * Update a custom page in Firestore (for renaming)
+ */
+export async function updateCustomPage(id: string, updates: Partial<CustomPage>): Promise<void> {
+  const docRef = doc(db, CUSTOM_PAGES_COLLECTION, id);
+  await updateDoc(docRef, updates);
+}
+
+/**
+ * Delete a custom page from Firestore
+ */
+export async function deleteCustomPage(id: string): Promise<void> {
+  const docRef = doc(db, CUSTOM_PAGES_COLLECTION, id);
+  await deleteDoc(docRef);
+}
+
+/**
+ * Batch delete multiple ideas (for when deleting a page with ideas)
+ */
+export async function batchDeleteIdeas(ideaIds: string[]): Promise<void> {
+  const batch = writeBatch(db);
+
+  for (const id of ideaIds) {
+    const docRef = doc(db, COLLECTION_NAME, id);
+    batch.delete(docRef);
+  }
+
+  await batch.commit();
+}
+
+/**
+ * Rename a page: update all ideas that reference the old page name
+ */
+export async function renamePageInIdeas(
+  category: Category,
+  oldPageName: string,
+  newPageName: string
+): Promise<void> {
+  const ideas = await getIdeas();
+  const affectedIdeas = ideas.filter(
+    (idea) => idea.category === category && idea.subcategory === oldPageName
+  );
+
+  if (affectedIdeas.length === 0) return;
+
+  const batch = writeBatch(db);
+
+  for (const idea of affectedIdeas) {
+    const docRef = doc(db, COLLECTION_NAME, idea.id);
+    batch.update(docRef, { subcategory: newPageName });
+  }
+
+  await batch.commit();
+}
+
+// ============================================
+// PAGE ORDERS CRUD OPERATIONS
+// ============================================
+
+/**
+ * Get all page orders from Firestore
+ */
+export async function getPageOrders(): Promise<PageOrder[]> {
+  const ordersCollection = collection(db, PAGE_ORDERS_COLLECTION);
+  const snapshot = await getDocs(ordersCollection);
+
+  return snapshot.docs.map((doc) => ({
+    ...doc.data(),
+    category: doc.id as Category,
+  })) as PageOrder[];
+}
+
+/**
+ * Save page order for a category
+ */
+export async function savePageOrder(category: Category, orderedPages: string[]): Promise<void> {
+  const docRef = doc(db, PAGE_ORDERS_COLLECTION, category);
+  await setDoc(docRef, { orderedPages });
 }
 
