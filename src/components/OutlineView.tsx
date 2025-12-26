@@ -1,5 +1,15 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, FileText, User, Megaphone, Briefcase, Cpu, Scale, Map } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronRight,
+  FileText,
+  User,
+  Megaphone,
+  Briefcase,
+  Cpu,
+  Scale,
+  Map,
+} from 'lucide-react';
 import { CATEGORY_STRUCTURE, Category, useIdeaStore } from '../ideaStore';
 
 interface OutlineViewProps {
@@ -7,7 +17,13 @@ interface OutlineViewProps {
 }
 
 // Helper to render category icon
-const CategoryIcon = ({ category, size = 16 }: { category: Category; size?: number }) => {
+const CategoryIcon = ({
+  category,
+  size = 16,
+}: {
+  category: Category;
+  size?: number;
+}) => {
   const iconKey = CATEGORY_STRUCTURE[category].emoji;
   switch (iconKey) {
     case 'megaphone':
@@ -67,7 +83,10 @@ export default function OutlineView({ onNavigate }: OutlineViewProps) {
           const categoryInfo = CATEGORY_STRUCTURE[category];
 
           return (
-            <div key={category} className={index > 0 ? 'border-t border-gray-100' : ''}>
+            <div
+              key={category}
+              className={index > 0 ? 'border-t border-gray-100' : ''}
+            >
               {/* Category Header */}
               <button
                 onClick={() => toggleCategory(category)}
@@ -108,7 +127,10 @@ export default function OutlineView({ onNavigate }: OutlineViewProps) {
                         onClick={() => onNavigate(category, page)}
                         className="w-full flex items-center gap-3 pl-12 pr-4 py-2 hover:bg-blue-50 transition-colors text-left group"
                       >
-                        <FileText size={14} className="text-gray-300 group-hover:text-blue-500 flex-shrink-0" />
+                        <FileText
+                          size={14}
+                          className="text-gray-300 group-hover:text-blue-500 flex-shrink-0"
+                        />
                         <span className="flex-1 text-sm text-gray-700 group-hover:text-blue-700 truncate">
                           {page}
                         </span>
@@ -137,7 +159,10 @@ export default function OutlineView({ onNavigate }: OutlineViewProps) {
         </div>
         <div className="bg-white rounded-lg border border-gray-200 p-4 text-center">
           <div className="text-2xl font-bold text-slate-800">
-            {categories.reduce((sum, cat) => sum + getPagesForCategory(cat).length, 0)}
+            {categories.reduce(
+              (sum, cat) => sum + getPagesForCategory(cat).length,
+              0
+            )}
           </div>
           <div className="text-xs text-gray-500 mt-1">Total Pages</div>
         </div>
@@ -147,7 +172,8 @@ export default function OutlineView({ onNavigate }: OutlineViewProps) {
               (sum, cat) =>
                 sum +
                 getPagesForCategory(cat).reduce(
-                  (pageSum, page) => pageSum + getIdeasForPage(cat, page).length,
+                  (pageSum, page) =>
+                    pageSum + getIdeasForPage(cat, page).length,
                   0
                 ),
               0

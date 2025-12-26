@@ -1,9 +1,12 @@
 import { create } from 'zustand';
 import * as consultantService from './services/consultantService';
-import type { CanonDoc, ConsultantSettings } from './services/consultantService';
+import type { CanonDoc } from './services/consultantService';
 
 // Re-export types for convenience
-export type { CanonDoc, ConsultantSettings } from './services/consultantService';
+export type {
+  CanonDoc,
+  ConsultantSettings,
+} from './services/consultantService';
 
 interface ConsultantStore {
   // --- Canon State ---
@@ -24,7 +27,10 @@ interface ConsultantStore {
 
   // --- Settings Actions ---
   loadSettings: () => Promise<void>;
-  saveSettings: (userContext: string, projectConstraints: string) => Promise<void>;
+  saveSettings: (
+    userContext: string,
+    projectConstraints: string
+  ) => Promise<void>;
 
   // --- Combined Loader ---
   loadAll: () => Promise<void>;
@@ -50,7 +56,9 @@ export const useConsultantStore = create<ConsultantStore>()((set, get) => ({
 
       // Seed default canon if empty
       if (docs.length === 0) {
-        await consultantService.seedCanonDocs(consultantService.DEFAULT_CANON_DOCS);
+        await consultantService.seedCanonDocs(
+          consultantService.DEFAULT_CANON_DOCS
+        );
         docs = consultantService.DEFAULT_CANON_DOCS;
       }
 

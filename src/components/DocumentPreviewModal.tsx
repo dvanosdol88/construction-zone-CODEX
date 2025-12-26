@@ -10,7 +10,10 @@ interface DocumentPreviewModalProps {
 const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
 const TEXT_EXTENSIONS = ['txt', 'md', 'html'];
 
-export default function DocumentPreviewModal({ doc, onClose }: DocumentPreviewModalProps) {
+export default function DocumentPreviewModal({
+  doc,
+  onClose,
+}: DocumentPreviewModalProps) {
   const [textContent, setTextContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -52,7 +55,9 @@ export default function DocumentPreviewModal({ doc, onClose }: DocumentPreviewMo
       >
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-          <h2 className="text-lg font-semibold text-slate-800 truncate">{doc.filename}</h2>
+          <h2 className="text-lg font-semibold text-slate-800 truncate">
+            {doc.filename}
+          </h2>
           <div className="flex items-center gap-2">
             <a
               href={doc.storageUrl}
@@ -125,4 +130,3 @@ export default function DocumentPreviewModal({ doc, onClose }: DocumentPreviewMo
     </div>
   );
 }
-

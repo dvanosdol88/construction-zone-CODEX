@@ -48,7 +48,7 @@ export default function DocumentsView() {
   };
 
   const handleDelete = async (doc: DocumentMeta) => {
-    if (confirm(`Delete "${doc.filename}"? This cannot be undone.`)) {
+    if (confirm(`Delete "${doc.filename.replace(/"/g, '\\"')}"? This cannot be undone.`)) {
       await deleteDocument(doc);
     }
   };
@@ -80,7 +80,8 @@ export default function DocumentsView() {
     );
   }
 
-  const noResults = searchQuery && canonicalDocs.length === 0 && otherDocs.length === 0;
+  const noResults =
+    searchQuery && canonicalDocs.length === 0 && otherDocs.length === 0;
 
   return (
     <main className="flex-1 overflow-y-auto metallic-gradient py-4 pl-8 pr-8">
@@ -131,7 +132,9 @@ export default function DocumentsView() {
 
         {noResults && (
           <div className="text-center py-12">
-            <p className="text-slate-400 text-lg">No documents found matching "{searchQuery}"</p>
+            <p className="text-slate-400 text-lg">
+              No documents found matching &ldquo;{searchQuery}&rdquo;
+            </p>
           </div>
         )}
 
@@ -170,18 +173,20 @@ export default function DocumentsView() {
             </span>
           </h2>
 
-          {otherDocs.length === 0 && canonicalDocs.length === 0 && !searchQuery && (
-            <div className="text-center py-16 bg-white rounded-xl border-2 border-dashed border-slate-200">
-              <FolderOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-              <p className="text-slate-500 mb-4">No documents uploaded yet</p>
-              <button
-                onClick={handleUploadClick}
-                className="text-blue-600 hover:text-blue-700 font-medium"
-              >
-                Upload your first document
-              </button>
-            </div>
-          )}
+          {otherDocs.length === 0 &&
+            canonicalDocs.length === 0 &&
+            !searchQuery && (
+              <div className="text-center py-16 bg-white rounded-xl border-2 border-dashed border-slate-200">
+                <FolderOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <p className="text-slate-500 mb-4">No documents uploaded yet</p>
+                <button
+                  onClick={handleUploadClick}
+                  className="text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  Upload your first document
+                </button>
+              </div>
+            )}
 
           {otherDocs.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -200,10 +205,12 @@ export default function DocumentsView() {
 
         {/* Preview Modal */}
         {previewDoc && (
-          <DocumentPreviewModal doc={previewDoc} onClose={() => setPreviewDoc(null)} />
+          <DocumentPreviewModal
+            doc={previewDoc}
+            onClose={() => setPreviewDoc(null)}
+          />
         )}
       </div>
     </main>
   );
 }
-

@@ -116,7 +116,9 @@ export const useTodoStore = create<TodoStore>()((set, get) => ({
     // Optimistic update
     set((state) => ({
       todos: state.todos.map((t) =>
-        t.id === id ? { ...t, completed: newCompleted, updatedAt: Date.now() } : t
+        t.id === id
+          ? { ...t, completed: newCompleted, updatedAt: Date.now() }
+          : t
       ),
     }));
 
@@ -145,7 +147,9 @@ export const useTodoStore = create<TodoStore>()((set, get) => ({
       .filter((todo) =>
         searchQuery
           ? todo.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            todo.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            todo.description
+              ?.toLowerCase()
+              .includes(searchQuery.toLowerCase()) ||
             todo.tags.some((tag) =>
               tag.toLowerCase().includes(searchQuery.toLowerCase())
             )

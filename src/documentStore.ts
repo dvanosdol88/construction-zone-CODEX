@@ -108,9 +108,7 @@ export const useDocumentStore = create<DocumentStore>()((set, get) => ({
     // Optimistic update
     set((state) => ({
       documents: state.documents.map((d) =>
-        d.id === docId
-          ? { ...d, linkedCards: [...d.linkedCards, cardId] }
-          : d
+        d.id === docId ? { ...d, linkedCards: [...d.linkedCards, cardId] } : d
       ),
     }));
 
@@ -150,9 +148,7 @@ export const useDocumentStore = create<DocumentStore>()((set, get) => ({
       // Rollback
       set((state) => ({
         documents: state.documents.map((d) =>
-          d.id === docId
-            ? { ...d, linkedCards: [...d.linkedCards, cardId] }
-            : d
+          d.id === docId ? { ...d, linkedCards: [...d.linkedCards, cardId] } : d
         ),
       }));
     }
@@ -193,4 +189,3 @@ export const useDocumentStore = create<DocumentStore>()((set, get) => ({
       .sort((a, b) => b.uploadedAt - a.uploadedAt);
   },
 }));
-

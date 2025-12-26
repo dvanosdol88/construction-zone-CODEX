@@ -45,7 +45,8 @@ export default function TodoCard({
   onEdit,
 }: TodoCardProps) {
   const priorityConfig = PRIORITY_CONFIG[todo.priority];
-  const isOverdue = todo.dueDate && todo.dueDate < Date.now() && !todo.completed;
+  const isOverdue =
+    todo.dueDate && todo.dueDate < Date.now() && !todo.completed;
 
   const formattedDueDate = todo.dueDate
     ? new Date(todo.dueDate).toLocaleDateString('en-US', {
@@ -85,11 +86,7 @@ export default function TodoCard({
               : 'text-slate-300 hover:text-slate-400'
           }`}
         >
-          {todo.completed ? (
-            <CheckCircle2 size={22} />
-          ) : (
-            <Circle size={22} />
-          )}
+          {todo.completed ? <CheckCircle2 size={22} /> : <Circle size={22} />}
         </button>
 
         {/* Content */}

@@ -8,7 +8,29 @@ import {
   PAGE_NAME_MAX_LENGTH,
   PAGE_DESCRIPTION_MAX_LENGTH,
 } from './ideaStore';
-import { Search, Plus, Sparkles, ChevronDown, ChevronUp, Loader2, AlertCircle, FolderOpen, Lightbulb, CheckSquare, User, X, Pencil, Trash2, GripVertical, List, Rocket, Megaphone, Briefcase, Cpu, Scale, Map } from 'lucide-react';
+import {
+  Search,
+  Plus,
+  Sparkles,
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+  AlertCircle,
+  FolderOpen,
+  Lightbulb,
+  CheckSquare,
+  User,
+  Pencil,
+  Trash2,
+  GripVertical,
+  List,
+  Rocket,
+  Megaphone,
+  Briefcase,
+  Cpu,
+  Scale,
+  Map,
+} from 'lucide-react';
 import GeminiSidebar from './components/GeminiSidebar';
 import CollapsibleSection from './components/CollapsibleSection';
 import CardDetailModal from './components/CardDetailModal';
@@ -18,10 +40,22 @@ import TodoView from './components/TodoView';
 import OutlineView from './components/OutlineView';
 import PreLaunchChecklistView from './components/PreLaunchChecklistView';
 
-type ActiveView = 'construction' | 'documents' | 'ideaHopper' | 'todo' | 'outline' | 'preLaunchChecklist';
+type ActiveView =
+  | 'construction'
+  | 'documents'
+  | 'ideaHopper'
+  | 'todo'
+  | 'outline'
+  | 'preLaunchChecklist';
 
 // Helper to render category icon using lucide-react icons keyed in CATEGORY_STRUCTURE.
-const CategoryIcon = ({ category, size = 16 }: { category: Category; size?: number }) => {
+const CategoryIcon = ({
+  category,
+  size = 16,
+}: {
+  category: Category;
+  size?: number;
+}) => {
   const iconKey = CATEGORY_STRUCTURE[category].emoji;
   switch (iconKey) {
     case 'megaphone':
@@ -70,7 +104,6 @@ export default function ConstructionZone() {
     getPageDescription,
     getIdeasForPage,
     isCustomPage,
-    validatePageName,
     reorderPages,
   } = useIdeaStore();
 
@@ -81,7 +114,9 @@ export default function ConstructionZone() {
   useEffect(() => {
     loadIdeas();
   }, [loadIdeas]);
-  const [activePage, setActivePage] = useState<string>(CATEGORY_STRUCTURE['A'].pages[0].name);
+  const [activePage, setActivePage] = useState<string>(
+    CATEGORY_STRUCTURE['A'].pages[0].name
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [geminiOpen, setGeminiOpen] = useState(false);
   const [newItemText, setNewItemText] = useState('');
@@ -97,7 +132,11 @@ export default function ConstructionZone() {
   const [editPageValue, setEditPageValue] = useState('');
   const [editPageDescription, setEditPageDescription] = useState('');
   const [editPageError, setEditPageError] = useState<string | null>(null);
-  const [deleteConfirmPage, setDeleteConfirmPage] = useState<{ id: string; name: string; ideaCount: number } | null>(null);
+  const [deleteConfirmPage, setDeleteConfirmPage] = useState<{
+    id: string;
+    name: string;
+    ideaCount: number;
+  } | null>(null);
   const addPageInputRef = useRef<HTMLInputElement>(null);
   const editPageInputRef = useRef<HTMLInputElement>(null);
   const [draggedPage, setDraggedPage] = useState<string | null>(null);
@@ -114,7 +153,10 @@ export default function ConstructionZone() {
   };
 
   // Get pages for the current category (default + custom)
-  const currentPages = useMemo(() => getPagesForCategory(activeTab), [activeTab, customPages, pageOrders, getPagesForCategory]);
+  const currentPages = useMemo(
+    () => getPagesForCategory(activeTab),
+    [activeTab, customPages, pageOrders, getPagesForCategory]
+  );
 
   // Custom page handlers
   const handleStartAddPage = () => {
@@ -133,7 +175,11 @@ export default function ConstructionZone() {
   };
 
   const handleConfirmAddPage = async () => {
-    const result = await addCustomPage(activeTab, newPageName, newPageDescription);
+    const result = await addCustomPage(
+      activeTab,
+      newPageName,
+      newPageDescription
+    );
     if (result.success) {
       setIsAddingPage(false);
       setNewPageName('');
@@ -184,7 +230,10 @@ export default function ConstructionZone() {
     }
 
     // Update description (always update to capture any changes)
-    const descResult = await updateCustomPageDescription(customPage.id, editPageDescription);
+    const descResult = await updateCustomPageDescription(
+      customPage.id,
+      editPageDescription
+    );
     if (!descResult.success) {
       setEditPageError(descResult.error || 'Failed to update description');
       return;
@@ -217,7 +266,9 @@ export default function ConstructionZone() {
     // If we're deleting the currently active page, switch to first page
     if (activePage === deleteConfirmPage.name) {
       const pages = getPagesForCategory(activeTab);
-      const newActivePage = pages.find((p) => p !== deleteConfirmPage.name) || CATEGORY_STRUCTURE[activeTab].pages[0].name;
+      const newActivePage =
+        pages.find((p) => p !== deleteConfirmPage.name) ||
+        CATEGORY_STRUCTURE[activeTab].pages[0].name;
       setActivePage(newActivePage);
     }
 
@@ -270,15 +321,20 @@ export default function ConstructionZone() {
   const filteredItems = useMemo(() => {
     return ideas.filter((idea) => {
       if (!idea || !idea.text) return false;
-      const matchesContext = idea.category === activeTab && idea.subcategory === activePage;
-      const matchesSearch = idea.text.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesContext =
+        idea.category === activeTab && idea.subcategory === activePage;
+      const matchesSearch = idea.text
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
       return matchesContext && matchesSearch;
     });
   }, [ideas, activeTab, activePage, searchQuery]);
 
   const pinnedItems = useMemo(
     () =>
-      filteredItems.filter((idea) => idea.pinned || idea.stage === 'current_best'),
+      filteredItems.filter(
+        (idea) => idea.pinned || idea.stage === 'current_best'
+      ),
     [filteredItems]
   );
 
@@ -291,7 +347,10 @@ export default function ConstructionZone() {
   );
 
   const readyItems = useMemo(
-    () => filteredItems.filter((idea) => idea.stage === 'ready_to_go' && !idea.pinned),
+    () =>
+      filteredItems.filter(
+        (idea) => idea.stage === 'ready_to_go' && !idea.pinned
+      ),
     [filteredItems]
   );
 
@@ -336,13 +395,18 @@ export default function ConstructionZone() {
       : 'border border-slate-200';
 
     return (
-      <div className={`bg-white ${focusClasses} rounded-md shadow-sm hover:shadow-md hover:border-slate-300 p-3 space-y-2 transition-shadow group cursor-pointer`} onClick={() => setSelectedIdeaId(idea.id)}>
+      <div
+        className={`bg-white ${focusClasses} rounded-md shadow-sm hover:shadow-md hover:border-slate-300 p-3 space-y-2 transition-shadow group cursor-pointer`}
+        onClick={() => setSelectedIdeaId(idea.id)}
+      >
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
             <div className="text-[10px] uppercase tracking-wide text-slate-400 font-medium">
               {displayName}
             </div>
-            <p className="text-slate-900 font-medium leading-snug">{idea.text}</p>
+            <p className="text-slate-900 font-medium leading-snug">
+              {idea.text}
+            </p>
           </div>
           <button
             onClick={(e) => {
@@ -467,7 +531,9 @@ export default function ConstructionZone() {
                     : 'border-transparent text-slate-200 hover:text-white hover:bg-slate-600'
                 }`}
               >
-                <span className="mr-2"><CategoryIcon category={key} /></span>
+                <span className="mr-2">
+                  <CategoryIcon category={key} />
+                </span>
                 {CATEGORY_STRUCTURE[key].label}
               </button>
             ))}
@@ -507,14 +573,18 @@ export default function ConstructionZone() {
                 // Render rename input for custom pages being edited
                 if (isEditing) {
                   return (
-                    <div key={page} className="space-y-2 p-2 bg-white border border-gray-200 rounded-lg shadow-sm">
+                    <div
+                      key={page}
+                      className="space-y-2 p-2 bg-white border border-gray-200 rounded-lg shadow-sm"
+                    >
                       <input
                         ref={editPageInputRef}
                         type="text"
                         value={editPageValue}
                         onChange={(e) => setEditPageValue(e.target.value)}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) handleConfirmRenamePage();
+                          if (e.key === 'Enter' && !e.shiftKey)
+                            handleConfirmRenamePage();
                           if (e.key === 'Escape') handleCancelRenamePage();
                         }}
                         maxLength={PAGE_NAME_MAX_LENGTH}
@@ -533,7 +603,9 @@ export default function ConstructionZone() {
                         placeholder="Description (optional)..."
                       />
                       {editPageError && (
-                        <p className="text-xs text-red-500 px-1">{editPageError}</p>
+                        <p className="text-xs text-red-500 px-1">
+                          {editPageError}
+                        </p>
                       )}
                       <div className="flex gap-1">
                         <button
@@ -567,7 +639,9 @@ export default function ConstructionZone() {
                         ? 'bg-white shadow-sm border border-gray-200'
                         : 'hover:bg-gray-100'
                     } ${draggedPage === page ? 'opacity-40' : 'opacity-100'} ${
-                      dragOverPage === page ? 'border-t-2 border-t-blue-500' : ''
+                      dragOverPage === page
+                        ? 'border-t-2 border-t-blue-500'
+                        : ''
                     }`}
                   >
                     {/* Drag Handle */}
@@ -578,16 +652,25 @@ export default function ConstructionZone() {
                     <button
                       onClick={() => setActivePage(page)}
                       className={`flex-1 text-left px-2 py-2.5 text-sm font-medium transition-all flex items-center justify-between ${
-                        activePage === page
-                          ? 'text-blue-700'
-                          : 'text-gray-600'
+                        activePage === page ? 'text-blue-700' : 'text-gray-600'
                       }`}
                     >
                       <span className="truncate">{page}</span>
-                      <span className={`text-[10px] ml-2 px-1.5 py-0.5 rounded-full ${
-                        activePage === page ? 'bg-blue-100 text-blue-600' : 'bg-gray-200 text-gray-500'
-                      }`}>
-                        {ideas.filter(i => i.category === activeTab && i.subcategory === page && i.stage !== 'archived').length}
+                      <span
+                        className={`text-[10px] ml-2 px-1.5 py-0.5 rounded-full ${
+                          activePage === page
+                            ? 'bg-blue-100 text-blue-600'
+                            : 'bg-gray-200 text-gray-500'
+                        }`}
+                      >
+                        {
+                          ideas.filter(
+                            (i) =>
+                              i.category === activeTab &&
+                              i.subcategory === page &&
+                              i.stage !== 'archived'
+                          ).length
+                        }
                       </span>
                     </button>
 
@@ -629,7 +712,8 @@ export default function ConstructionZone() {
                     value={newPageName}
                     onChange={(e) => setNewPageName(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) handleConfirmAddPage();
+                      if (e.key === 'Enter' && !e.shiftKey)
+                        handleConfirmAddPage();
                       if (e.key === 'Escape') handleCancelAddPage();
                     }}
                     maxLength={PAGE_NAME_MAX_LENGTH}
@@ -810,7 +894,8 @@ export default function ConstructionZone() {
                   )}
                 </h2>
                 <p className="text-slate-500 text-xs mt-0.5">
-                  Organize your {CATEGORY_STRUCTURE[activeTab].label.toLowerCase()} workflow.
+                  Organize your{' '}
+                  {CATEGORY_STRUCTURE[activeTab].label.toLowerCase()} workflow.
                 </p>
               </div>
 
@@ -823,7 +908,8 @@ export default function ConstructionZone() {
                   {activePage}
                 </h1>
                 <p className="text-gray-500 text-sm mt-1">
-                  {getPageDescription(activeTab, activePage) || `Organize the ${activePage.toLowerCase()} stream across your stages.`}
+                  {getPageDescription(activeTab, activePage) ||
+                    `Organize the ${activePage.toLowerCase()} stream across your stages.`}
                 </p>
               </div>
 
@@ -840,7 +926,9 @@ export default function ConstructionZone() {
                 <div className="flex flex-col items-center justify-center py-20">
                   <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center max-w-md">
                     <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-4" />
-                    <p className="text-red-700 font-medium mb-2">Connection Error</p>
+                    <p className="text-red-700 font-medium mb-2">
+                      Connection Error
+                    </p>
                     <p className="text-red-600 text-sm mb-4">{error}</p>
                     <button
                       onClick={() => loadIdeas()}
@@ -865,7 +953,9 @@ export default function ConstructionZone() {
                       <IdeaCard key={idea.id} idea={idea} />
                     ))}
                     {pinnedItems.length === 0 && (
-                      <div className="text-sm text-gray-400 italic col-span-full">Nothing pinned yet.</div>
+                      <div className="text-sm text-gray-400 italic col-span-full">
+                        Nothing pinned yet.
+                      </div>
                     )}
                   </CollapsibleSection>
 
@@ -875,7 +965,9 @@ export default function ConstructionZone() {
                     count={workshoppingItems.length}
                   >
                     {workshoppingItems.length === 0 && (
-                      <div className="text-sm text-gray-400 italic col-span-full">No workshopping items.</div>
+                      <div className="text-sm text-gray-400 italic col-span-full">
+                        No workshopping items.
+                      </div>
                     )}
                     {workshoppingItems.map((idea) => (
                       <IdeaCard key={idea.id} idea={idea} />
@@ -888,7 +980,9 @@ export default function ConstructionZone() {
                     count={readyItems.length}
                   >
                     {readyItems.length === 0 && (
-                      <div className="text-sm text-gray-400 italic col-span-full">No ready items yet.</div>
+                      <div className="text-sm text-gray-400 italic col-span-full">
+                        No ready items yet.
+                      </div>
                     )}
                     {readyItems.map((idea) => (
                       <IdeaCard key={idea.id} idea={idea} />
@@ -900,14 +994,21 @@ export default function ConstructionZone() {
                       onClick={() => setShowArchived((prev) => !prev)}
                       className="text-sm text-blue-700 hover:underline flex items-center gap-2"
                     >
-                      {showArchived ? 'Hide archived' : 'Show archived'} ({archivedItems.length})
-                      {showArchived ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      {showArchived ? 'Hide archived' : 'Show archived'} (
+                      {archivedItems.length})
+                      {showArchived ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      )}
                     </button>
 
                     {showArchived && (
                       <div className="mt-4 space-y-3">
                         {archivedItems.length === 0 && (
-                          <div className="text-sm text-gray-400 italic">No archived items.</div>
+                          <div className="text-sm text-gray-400 italic">
+                            No archived items.
+                          </div>
                         )}
                         {archivedItems.map((idea) => (
                           <IdeaCard key={idea.id} idea={idea} />
@@ -940,9 +1041,7 @@ export default function ConstructionZone() {
           </main>
         )}
 
-        {geminiOpen && (
-          <GeminiSidebar onClose={() => setGeminiOpen(false)} />
-        )}
+        {geminiOpen && <GeminiSidebar onClose={() => setGeminiOpen(false)} />}
 
         {selectedIdeaId && (
           <CardDetailModal
@@ -960,17 +1059,22 @@ export default function ConstructionZone() {
                   <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
                     <Trash2 className="w-5 h-5 text-red-600" />
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900">Delete Page</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Delete Page
+                  </h3>
                 </div>
 
                 <p className="text-gray-600 mb-4">
-                  Are you sure you want to delete "<span className="font-medium">{deleteConfirmPage.name}</span>"?
+                  Are you sure you want to delete &ldquo;
+                  <span className="font-medium">{deleteConfirmPage.name}</span>
+                  &rdquo;?
                 </p>
 
                 {deleteConfirmPage.ideaCount > 0 ? (
                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
                     <p className="text-amber-800 text-sm font-medium mb-2">
-                      This page contains {deleteConfirmPage.ideaCount} idea{deleteConfirmPage.ideaCount === 1 ? '' : 's'}.
+                      This page contains {deleteConfirmPage.ideaCount} idea
+                      {deleteConfirmPage.ideaCount === 1 ? '' : 's'}.
                     </p>
                     <p className="text-amber-700 text-sm">
                       What would you like to do with them?

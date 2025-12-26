@@ -66,7 +66,9 @@ export default function TodoView() {
       description: newTodo.description.trim() || undefined,
       completed: false,
       priority: newTodo.priority,
-      dueDate: newTodo.dueDate ? new Date(newTodo.dueDate).getTime() : undefined,
+      dueDate: newTodo.dueDate
+        ? new Date(newTodo.dueDate).getTime()
+        : undefined,
       createdAt: Date.now(),
       updatedAt: Date.now(),
       tags: newTodo.tags
@@ -87,7 +89,9 @@ export default function TodoView() {
       text: newTodo.text.trim(),
       description: newTodo.description.trim() || undefined,
       priority: newTodo.priority,
-      dueDate: newTodo.dueDate ? new Date(newTodo.dueDate).getTime() : undefined,
+      dueDate: newTodo.dueDate
+        ? new Date(newTodo.dueDate).getTime()
+        : undefined,
       tags: newTodo.tags
         .split(',')
         .map((t) => t.trim())
@@ -150,58 +154,60 @@ export default function TodoView() {
   return (
     <div className="max-w-4xl mx-auto">
       {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
-              <CheckSquare className="w-8 h-8 text-blue-600" />
-              To Do
-            </h1>
-            <p className="text-slate-500 mt-1">
-              {activeTodos.length} active · {completedTodos.length} completed
-            </p>
-          </div>
-
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors"
-          >
-            <Plus size={18} />
-            Add Task
-          </button>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
+            <CheckSquare className="w-8 h-8 text-blue-600" />
+            To Do
+          </h1>
+          <p className="text-slate-500 mt-1">
+            {activeTodos.length} active · {completedTodos.length} completed
+          </p>
         </div>
 
-        {/* Search and Filter */}
-        <div className="flex gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search tasks..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded-xl pl-12 pr-4 py-3 text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-            />
-          </div>
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors"
+        >
+          <Plus size={18} />
+          Add Task
+        </button>
+      </div>
 
-          <div className="flex bg-white border border-slate-200 rounded-xl overflow-hidden">
-            {(['all', 'active', 'completed'] as const).map((filter) => (
-              <button
-                key={filter}
-                onClick={() => setFilterCompleted(filter)}
-                className={`px-4 py-3 text-sm font-medium transition-colors ${
-                  filterCompleted === filter
-                    ? 'bg-blue-600 text-white'
-                    : 'text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                {filter.charAt(0).toUpperCase() + filter.slice(1)}
-              </button>
-            ))}
-          </div>
+      {/* Search and Filter */}
+      <div className="flex gap-4 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search tasks..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-white border border-slate-200 rounded-xl pl-12 pr-4 py-3 text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+          />
         </div>
 
-        {/* Empty State */}
-        {filteredTodos.length === 0 && !searchQuery && filterCompleted === 'all' && (
+        <div className="flex bg-white border border-slate-200 rounded-xl overflow-hidden">
+          {(['all', 'active', 'completed'] as const).map((filter) => (
+            <button
+              key={filter}
+              onClick={() => setFilterCompleted(filter)}
+              className={`px-4 py-3 text-sm font-medium transition-colors ${
+                filterCompleted === filter
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              {filter.charAt(0).toUpperCase() + filter.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Empty State */}
+      {filteredTodos.length === 0 &&
+        !searchQuery &&
+        filterCompleted === 'all' && (
           <div className="text-center py-16 bg-white rounded-xl border-2 border-dashed border-slate-200">
             <ListTodo className="w-16 h-16 text-slate-300 mx-auto mb-4" />
             <p className="text-slate-500 mb-4">No tasks yet</p>
@@ -214,8 +220,9 @@ export default function TodoView() {
           </div>
         )}
 
-        {/* No Results */}
-        {filteredTodos.length === 0 && (searchQuery || filterCompleted !== 'all') && (
+      {/* No Results */}
+      {filteredTodos.length === 0 &&
+        (searchQuery || filterCompleted !== 'all') && (
           <div className="text-center py-12">
             <p className="text-slate-400 text-lg">
               No tasks found
@@ -225,20 +232,20 @@ export default function TodoView() {
           </div>
         )}
 
-        {/* Todos List */}
-        {filteredTodos.length > 0 && (
-          <div className="space-y-3">
-            {filteredTodos.map((todo) => (
-              <TodoCard
-                key={todo.id}
-                todo={todo}
-                onToggleComplete={toggleComplete}
-                onDelete={deleteTodo}
-                onEdit={openEditModal}
-              />
-            ))}
-          </div>
-        )}
+      {/* Todos List */}
+      {filteredTodos.length > 0 && (
+        <div className="space-y-3">
+          {filteredTodos.map((todo) => (
+            <TodoCard
+              key={todo.id}
+              todo={todo}
+              onToggleComplete={toggleComplete}
+              onDelete={deleteTodo}
+              onEdit={openEditModal}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Add/Edit Modal */}
       {(showAddModal || editingTodo) && (

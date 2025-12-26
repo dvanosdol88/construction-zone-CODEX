@@ -14,12 +14,42 @@ import {
 import { useIdeaHopperStore, HopperIdea } from '../ideaHopperStore';
 import IdeaHopperCard from './IdeaHopperCard';
 
-const STATUS_OPTIONS: Array<{ value: HopperIdea['status']; label: string; color: string; bgColor: string }> = [
-  { value: 'new', label: 'New', color: 'text-blue-700', bgColor: 'bg-blue-100 hover:bg-blue-200' },
-  { value: 'exploring', label: 'Exploring', color: 'text-purple-700', bgColor: 'bg-purple-100 hover:bg-purple-200' },
-  { value: 'developing', label: 'Developing', color: 'text-amber-700', bgColor: 'bg-amber-100 hover:bg-amber-200' },
-  { value: 'implemented', label: 'Implemented', color: 'text-green-700', bgColor: 'bg-green-100 hover:bg-green-200' },
-  { value: 'parked', label: 'Parked', color: 'text-slate-600', bgColor: 'bg-slate-200 hover:bg-slate-300' },
+const STATUS_OPTIONS: Array<{
+  value: HopperIdea['status'];
+  label: string;
+  color: string;
+  bgColor: string;
+}> = [
+  {
+    value: 'new',
+    label: 'New',
+    color: 'text-blue-700',
+    bgColor: 'bg-blue-100 hover:bg-blue-200',
+  },
+  {
+    value: 'exploring',
+    label: 'Exploring',
+    color: 'text-purple-700',
+    bgColor: 'bg-purple-100 hover:bg-purple-200',
+  },
+  {
+    value: 'developing',
+    label: 'Developing',
+    color: 'text-amber-700',
+    bgColor: 'bg-amber-100 hover:bg-amber-200',
+  },
+  {
+    value: 'implemented',
+    label: 'Implemented',
+    color: 'text-green-700',
+    bgColor: 'bg-green-100 hover:bg-green-200',
+  },
+  {
+    value: 'parked',
+    label: 'Parked',
+    color: 'text-slate-600',
+    bgColor: 'bg-slate-200 hover:bg-slate-300',
+  },
 ];
 
 export default function IdeaHopperView() {
@@ -27,7 +57,6 @@ export default function IdeaHopperView() {
     isLoading,
     error,
     searchQuery,
-    selectedIdeaId,
     statusFilters,
     setSearchQuery,
     setSelectedIdeaId,
@@ -117,7 +146,9 @@ export default function IdeaHopperView() {
   const updateUrlField = (index: number, value: string) => {
     setNewIdea((prev) => ({
       ...prev,
-      referenceUrls: prev.referenceUrls.map((url, i) => (i === index ? value : url)),
+      referenceUrls: prev.referenceUrls.map((url, i) =>
+        i === index ? value : url
+      ),
     }));
   };
 
@@ -229,37 +260,42 @@ export default function IdeaHopperView() {
           </div>
 
           {/* Empty State */}
-          {filteredIdeas.length === 0 && !searchQuery && statusFilters.size === 0 && (
-            <div className="text-center py-16 bg-white rounded-xl border-2 border-dashed border-slate-200">
-              <Lightbulb className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-              <p className="text-slate-500 mb-4">No ideas in the hopper yet</p>
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="text-blue-600 hover:text-blue-700 font-medium"
-              >
-                Add your first idea
-              </button>
-            </div>
-          )}
+          {filteredIdeas.length === 0 &&
+            !searchQuery &&
+            statusFilters.size === 0 && (
+              <div className="text-center py-16 bg-white rounded-xl border-2 border-dashed border-slate-200">
+                <Lightbulb className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <p className="text-slate-500 mb-4">
+                  No ideas in the hopper yet
+                </p>
+                <button
+                  onClick={() => setShowAddModal(true)}
+                  className="text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  Add your first idea
+                </button>
+              </div>
+            )}
 
           {/* No Results */}
-          {filteredIdeas.length === 0 && (searchQuery || statusFilters.size > 0) && (
-            <div className="text-center py-12">
-              <p className="text-slate-400 text-lg">
-                No ideas found
-                {searchQuery && ` matching "${searchQuery}"`}
-                {statusFilters.size > 0 && ` with selected status filters`}
-              </p>
-              {statusFilters.size > 0 && (
-                <button
-                  onClick={clearStatusFilters}
-                  className="mt-2 text-blue-600 hover:text-blue-700 text-sm"
-                >
-                  Clear filters
-                </button>
-              )}
-            </div>
-          )}
+          {filteredIdeas.length === 0 &&
+            (searchQuery || statusFilters.size > 0) && (
+              <div className="text-center py-12">
+                <p className="text-slate-400 text-lg">
+                  No ideas found
+                  {searchQuery && ` matching "${searchQuery}"`}
+                  {statusFilters.size > 0 && ` with selected status filters`}
+                </p>
+                {statusFilters.size > 0 && (
+                  <button
+                    onClick={clearStatusFilters}
+                    className="mt-2 text-blue-600 hover:text-blue-700 text-sm"
+                  >
+                    Clear filters
+                  </button>
+                )}
+              </div>
+            )}
 
           {/* Ideas Grid */}
           {filteredIdeas.length > 0 && (
@@ -299,27 +335,28 @@ export default function IdeaHopperView() {
             <p className="text-slate-600 mb-6">{selectedIdea.description}</p>
 
             {/* Reference URLs */}
-            {selectedIdea.referenceUrls && selectedIdea.referenceUrls.length > 0 && (
-              <div className="mb-6">
-                <label className="text-xs font-medium text-slate-500 uppercase mb-2 block">
-                  Reference URLs
-                </label>
-                <div className="space-y-2">
-                  {selectedIdea.referenceUrls.map((url, index) => (
-                    <a
-                      key={index}
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:underline text-sm"
-                    >
-                      <ExternalLink size={14} />
-                      <span className="truncate">{url}</span>
-                    </a>
-                  ))}
+            {selectedIdea.referenceUrls &&
+              selectedIdea.referenceUrls.length > 0 && (
+                <div className="mb-6">
+                  <label className="text-xs font-medium text-slate-500 uppercase mb-2 block">
+                    Reference URLs
+                  </label>
+                  <div className="space-y-2">
+                    {selectedIdea.referenceUrls.map((url, index) => (
+                      <a
+                        key={index}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:underline text-sm"
+                      >
+                        <ExternalLink size={14} />
+                        <span className="truncate">{url}</span>
+                      </a>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
             {selectedIdea.tags.length > 0 && (
               <div className="mb-6">
@@ -461,7 +498,9 @@ export default function IdeaHopperView() {
                         <input
                           type="url"
                           value={url}
-                          onChange={(e) => updateUrlField(index, e.target.value)}
+                          onChange={(e) =>
+                            updateUrlField(index, e.target.value)
+                          }
                           placeholder="https://..."
                           className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-slate-700 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 outline-none"
                         />
@@ -497,7 +536,9 @@ export default function IdeaHopperView() {
                 {/* Existing tags as clickable pills */}
                 {allExistingTags.length > 0 && (
                   <div className="mb-3">
-                    <p className="text-xs text-slate-500 mb-2">Click to add existing tags:</p>
+                    <p className="text-xs text-slate-500 mb-2">
+                      Click to add existing tags:
+                    </p>
                     <div className="flex flex-wrap gap-1.5">
                       {allExistingTags.map((tag) => {
                         const isSelected = newIdea.tags.includes(tag);

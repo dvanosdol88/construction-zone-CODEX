@@ -29,9 +29,21 @@ const STATUS_CONFIG: Record<
   { label: string; color: string; bgColor: string }
 > = {
   new: { label: 'New', color: 'text-blue-700', bgColor: 'bg-blue-100' },
-  exploring: { label: 'Exploring', color: 'text-purple-700', bgColor: 'bg-purple-100' },
-  developing: { label: 'Developing', color: 'text-amber-700', bgColor: 'bg-amber-100' },
-  implemented: { label: 'Implemented', color: 'text-green-700', bgColor: 'bg-green-100' },
+  exploring: {
+    label: 'Exploring',
+    color: 'text-purple-700',
+    bgColor: 'bg-purple-100',
+  },
+  developing: {
+    label: 'Developing',
+    color: 'text-amber-700',
+    bgColor: 'bg-amber-100',
+  },
+  implemented: {
+    label: 'Implemented',
+    color: 'text-green-700',
+    bgColor: 'bg-green-100',
+  },
   parked: { label: 'Parked', color: 'text-slate-500', bgColor: 'bg-slate-200' },
 };
 
@@ -222,9 +234,12 @@ export default function IdeaHopperCard({
   const tagSuggestions = allTags.filter((tag) => !idea.tags.includes(tag));
 
   // Get URLs to display (handle migration from old format)
-  const displayUrls = idea.referenceUrls?.length > 0
-    ? idea.referenceUrls
-    : (idea.referenceUrl ? [idea.referenceUrl] : []);
+  const displayUrls =
+    idea.referenceUrls?.length > 0
+      ? idea.referenceUrls
+      : idea.referenceUrl
+        ? [idea.referenceUrl]
+        : [];
 
   return (
     <div
@@ -240,14 +255,20 @@ export default function IdeaHopperCard({
             >
               {statusConfig.label}
             </span>
-            <span className="flex items-center gap-1" title={`Priority: ${idea.priority}`}>
+            <span
+              className="flex items-center gap-1"
+              title={`Priority: ${idea.priority}`}
+            >
               {PRIORITY_ICONS[idea.priority]}
             </span>
           </div>
 
           {/* Editable Title */}
           {isEditingTitle ? (
-            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+            <div
+              className="flex items-center gap-1"
+              onClick={(e) => e.stopPropagation()}
+            >
               <input
                 ref={titleInputRef}
                 type="text"
@@ -259,10 +280,16 @@ export default function IdeaHopperCard({
                 }}
                 className="flex-1 text-slate-900 font-semibold text-base bg-blue-50 border border-blue-300 rounded px-2 py-0.5 outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <button onClick={saveTitle} className="p-1 text-green-600 hover:text-green-700">
+              <button
+                onClick={saveTitle}
+                className="p-1 text-green-600 hover:text-green-700"
+              >
                 <Check size={14} />
               </button>
-              <button onClick={cancelEditTitle} className="p-1 text-slate-400 hover:text-slate-600">
+              <button
+                onClick={cancelEditTitle}
+                className="p-1 text-slate-400 hover:text-slate-600"
+              >
                 <X size={14} />
               </button>
             </div>
@@ -305,10 +332,16 @@ export default function IdeaHopperCard({
             className="w-full text-slate-600 text-sm bg-blue-50 border border-blue-300 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500 resize-none"
           />
           <div className="flex justify-end gap-1 mt-1">
-            <button onClick={saveDescription} className="p-1 text-green-600 hover:text-green-700">
+            <button
+              onClick={saveDescription}
+              className="p-1 text-green-600 hover:text-green-700"
+            >
               <Check size={14} />
             </button>
-            <button onClick={cancelEditDescription} className="p-1 text-slate-400 hover:text-slate-600">
+            <button
+              onClick={cancelEditDescription}
+              className="p-1 text-slate-400 hover:text-slate-600"
+            >
               <X size={14} />
             </button>
           </div>
@@ -316,7 +349,9 @@ export default function IdeaHopperCard({
       ) : (
         <div className="group/desc mb-3 flex items-start gap-1">
           <p className="text-slate-600 text-sm leading-relaxed line-clamp-2 flex-1">
-            {idea.description || <span className="text-slate-400 italic">No description</span>}
+            {idea.description || (
+              <span className="text-slate-400 italic">No description</span>
+            )}
           </p>
           <button
             onClick={startEditingDescription}
@@ -414,7 +449,9 @@ export default function IdeaHopperCard({
                   </a>
                 ))}
                 {displayUrls.length > 2 && (
-                  <span className="text-xs text-slate-400">+{displayUrls.length - 2} more URLs</span>
+                  <span className="text-xs text-slate-400">
+                    +{displayUrls.length - 2} more URLs
+                  </span>
                 )}
                 <button
                   onClick={startEditingUrls}
@@ -518,7 +555,9 @@ export default function IdeaHopperCard({
                   </span>
                 ))}
                 {idea.tags.length > 3 && (
-                  <span className="text-xs text-slate-400">+{idea.tags.length - 3} more</span>
+                  <span className="text-xs text-slate-400">
+                    +{idea.tags.length - 3} more
+                  </span>
                 )}
               </>
             ) : (

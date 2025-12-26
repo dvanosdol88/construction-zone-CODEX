@@ -1,5 +1,13 @@
 import React from 'react';
-import { Star, Trash2, Link2, FileText, FileImage, File, Download } from 'lucide-react';
+import {
+  Star,
+  Trash2,
+  Link2,
+  FileText,
+  FileImage,
+  File,
+  Download,
+} from 'lucide-react';
 import type { DocumentMeta } from '../documentStore';
 
 interface DocumentCardProps {
@@ -46,7 +54,9 @@ export default function DocumentCard({
   compact = false,
 }: DocumentCardProps) {
   const isImage = IMAGE_EXTENSIONS.includes(doc.fileType);
-  const isPreviewable = IMAGE_EXTENSIONS.includes(doc.fileType) || TEXT_EXTENSIONS.includes(doc.fileType);
+  const isPreviewable =
+    IMAGE_EXTENSIONS.includes(doc.fileType) ||
+    TEXT_EXTENSIONS.includes(doc.fileType);
 
   return (
     <div
@@ -56,7 +66,9 @@ export default function DocumentCard({
       onClick={() => onPreview(doc)}
     >
       {/* Thumbnail / Icon */}
-      <div className={`${compact ? 'h-28' : 'h-36'} bg-slate-50 rounded-t-lg flex items-center justify-center overflow-hidden relative`}>
+      <div
+        className={`${compact ? 'h-28' : 'h-36'} bg-slate-50 rounded-t-lg flex items-center justify-center overflow-hidden relative`}
+      >
         {isImage ? (
           <img
             src={doc.storageUrl}
@@ -78,7 +90,9 @@ export default function DocumentCard({
               ? 'bg-amber-100 text-amber-500'
               : 'bg-white/80 text-slate-400 opacity-0 group-hover:opacity-100 hover:text-amber-500'
           }`}
-          title={doc.isCanonical ? 'Remove from Canonical' : 'Mark as Canonical'}
+          title={
+            doc.isCanonical ? 'Remove from Canonical' : 'Mark as Canonical'
+          }
         >
           <Star size={16} className={doc.isCanonical ? 'fill-amber-500' : ''} />
         </button>
@@ -112,21 +126,30 @@ export default function DocumentCard({
 
       {/* Info */}
       <div className="p-3">
-        <p className="text-sm font-medium text-slate-800 truncate" title={doc.filename || 'Untitled'}>
+        <p
+          className="text-sm font-medium text-slate-800 truncate"
+          title={doc.filename || 'Untitled'}
+        >
           {doc.filename || 'Untitled'}
         </p>
         <div className="flex items-center justify-between mt-1">
-          <span className="text-xs text-slate-400">{formatDate(doc.uploadedAt)}</span>
-          <span className="text-xs text-slate-400">{formatFileSize(doc.size || 0)}</span>
+          <span className="text-xs text-slate-400">
+            {formatDate(doc.uploadedAt)}
+          </span>
+          <span className="text-xs text-slate-400">
+            {formatFileSize(doc.size || 0)}
+          </span>
         </div>
         {(doc.linkedCards?.length ?? 0) > 0 && (
           <div className="flex items-center gap-1 mt-2 text-xs text-blue-600">
             <Link2 size={12} />
-            <span>{doc.linkedCards.length} card{doc.linkedCards.length > 1 ? 's' : ''}</span>
+            <span>
+              {doc.linkedCards.length} card
+              {doc.linkedCards.length > 1 ? 's' : ''}
+            </span>
           </div>
         )}
       </div>
     </div>
   );
 }
-

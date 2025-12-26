@@ -69,7 +69,9 @@ export default function DocumentPickerModal({
       >
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-          <h2 className="text-lg font-semibold text-slate-800">Link Documents</h2>
+          <h2 className="text-lg font-semibold text-slate-800">
+            Link Documents
+          </h2>
           <button
             onClick={onClose}
             className="text-slate-400 hover:text-slate-600 transition-colors"
@@ -96,7 +98,9 @@ export default function DocumentPickerModal({
         <div className="flex-1 overflow-y-auto p-4">
           {filteredDocs.length === 0 && (
             <div className="text-center py-8 text-slate-400">
-              {searchQuery ? `No documents match "${searchQuery}"` : 'No documents available'}
+              {searchQuery
+                ? `No documents match "${searchQuery}"`
+                : 'No documents available'}
             </div>
           )}
 
@@ -139,7 +143,9 @@ export default function DocumentPickerModal({
                   {/* Check */}
                   <div
                     className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      isLinked ? 'bg-blue-500 text-white' : 'border-2 border-slate-300'
+                      isLinked
+                        ? 'bg-blue-500 text-white'
+                        : 'border-2 border-slate-300'
                     }`}
                   >
                     {isLinked && <Check size={14} />}
@@ -153,7 +159,8 @@ export default function DocumentPickerModal({
         {/* Footer */}
         <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center">
           <span className="text-sm text-slate-500">
-            {linkedDocIds.length} document{linkedDocIds.length !== 1 ? 's' : ''} linked
+            {linkedDocIds.length} document{linkedDocIds.length !== 1 ? 's' : ''}{' '}
+            linked
           </span>
           <button
             onClick={onClose}
@@ -166,4 +173,3 @@ export default function DocumentPickerModal({
     </div>
   );
 }
-

@@ -35,7 +35,7 @@ export interface PageOrder {
 export async function getIdeas(): Promise<Idea[]> {
   const ideasCollection = collection(db, COLLECTION_NAME);
   const snapshot = await getDocs(ideasCollection);
-  
+
   return snapshot.docs.map((doc) => ({
     ...doc.data(),
     id: doc.id,
@@ -53,7 +53,10 @@ export async function addIdea(idea: Idea): Promise<void> {
 /**
  * Update an existing idea in Firestore
  */
-export async function updateIdea(id: string, updates: Partial<Idea>): Promise<void> {
+export async function updateIdea(
+  id: string,
+  updates: Partial<Idea>
+): Promise<void> {
   const docRef = doc(db, COLLECTION_NAME, id);
   await updateDoc(docRef, updates);
 }
@@ -73,12 +76,12 @@ export async function batchUpdateIdeas(
   updates: { id: string; changes: Partial<Idea> }[]
 ): Promise<void> {
   const batch = writeBatch(db);
-  
+
   for (const { id, changes } of updates) {
     const docRef = doc(db, COLLECTION_NAME, id);
     batch.update(docRef, changes);
   }
-  
+
   await batch.commit();
 }
 
@@ -124,7 +127,10 @@ export async function addCustomPage(page: CustomPage): Promise<void> {
 /**
  * Update a custom page in Firestore (for renaming)
  */
-export async function updateCustomPage(id: string, updates: Partial<CustomPage>): Promise<void> {
+export async function updateCustomPage(
+  id: string,
+  updates: Partial<CustomPage>
+): Promise<void> {
   const docRef = doc(db, CUSTOM_PAGES_COLLECTION, id);
   await updateDoc(docRef, updates);
 }
@@ -196,7 +202,10 @@ export async function getPageOrders(): Promise<PageOrder[]> {
 /**
  * Save page order for a category
  */
-export async function savePageOrder(category: Category, orderedPages: string[]): Promise<void> {
+export async function savePageOrder(
+  category: Category,
+  orderedPages: string[]
+): Promise<void> {
   const docRef = doc(db, PAGE_ORDERS_COLLECTION, category);
   await setDoc(docRef, { orderedPages });
 }
@@ -218,7 +227,9 @@ export interface ChecklistItemState {
 /**
  * Get all checklist item states from Firestore
  */
-export async function getChecklistStates(): Promise<Record<string, ChecklistStatus>> {
+export async function getChecklistStates(): Promise<
+  Record<string, ChecklistStatus>
+> {
   const statesCollection = collection(db, CHECKLIST_COLLECTION);
   const snapshot = await getDocs(statesCollection);
 
@@ -234,7 +245,10 @@ export async function getChecklistStates(): Promise<Record<string, ChecklistStat
 /**
  * Save a single checklist item state to Firestore
  */
-export async function saveChecklistItemState(itemId: string, status: ChecklistStatus): Promise<void> {
+export async function saveChecklistItemState(
+  itemId: string,
+  status: ChecklistStatus
+): Promise<void> {
   const docRef = doc(db, CHECKLIST_COLLECTION, itemId);
   await setDoc(docRef, {
     itemId,
@@ -242,4 +256,3 @@ export async function saveChecklistItemState(itemId: string, status: ChecklistSt
     updatedAt: Date.now(),
   });
 }
-

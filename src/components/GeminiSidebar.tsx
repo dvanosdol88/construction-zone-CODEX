@@ -1,172 +1,209 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { GoogleGenAI, Type } from "@google/genai";
-import { Sparkles, Send, X, Bot, Loader2, Settings, Database, Trash2, Plus } from 'lucide-react';
-import { useIdeaStore, Category, CATEGORY_STRUCTURE, Stage } from '../ideaStore';
+import { GoogleGenAI, Type } from '@google/genai';
+import {
+  Sparkles,
+  Send,
+  X,
+  Bot,
+  Loader2,
+  Settings,
+  Database,
+  Trash2,
+  Plus,
+} from 'lucide-react';
+import {
+  useIdeaStore,
+  Category,
+  CATEGORY_STRUCTURE,
+  Stage,
+} from '../ideaStore';
 import { useConsultantStore } from '../consultantStore';
 
 // Map human-readable category names to our Category codes
 const CATEGORY_MAP: Record<string, Category> = {
-    'prospect experience': 'A',
-    'prospect': 'A',
-    'marketing': 'A',
-    'marketing and onboarding': 'A',
-    'client experience': 'B',
-    'client': 'B',
-    'advisor experience': 'F',
-    'advisor': 'F',
-    'tech stack': 'C',
-    'tech': 'C',
-    'vendors': 'C',
-    'compliance': 'D',
-    'roadmap': 'E',
-    'growth': 'E',
-    'a': 'A',
-    'b': 'B',
-    'f': 'F',
-    'c': 'C',
-    'd': 'D',
-    'e': 'E',
+  'prospect experience': 'A',
+  prospect: 'A',
+  marketing: 'A',
+  'marketing and onboarding': 'A',
+  'client experience': 'B',
+  client: 'B',
+  'advisor experience': 'F',
+  advisor: 'F',
+  'tech stack': 'C',
+  tech: 'C',
+  vendors: 'C',
+  compliance: 'D',
+  roadmap: 'E',
+  growth: 'E',
+  a: 'A',
+  b: 'B',
+  f: 'F',
+  c: 'C',
+  d: 'D',
+  e: 'E',
 };
 
 // --- GEMINI FUNCTION CALLING TOOL DEFINITION ---
 const createCardTool = {
-    name: "create_card",
-    description: "Creates a new card on the project board. Use this when the user asks to create, add, or generate cards/ideas/items.",
-    parameters: {
-        type: Type.OBJECT,
-        properties: {
-            text: {
-                type: Type.STRING,
-                description: "The card title/text describing the task or idea"
-            },
-            category: {
-                type: Type.STRING,
-                description: "The pillar/category. Must be one of: 'Prospect Experience', 'Client Experience', 'Advisor Experience', 'Tech Stack', 'Compliance', 'Roadmap'"
-            },
-            subcategory: {
-                type: Type.STRING,
-                description: "The section within the category. For Prospect Experience: Landing Page, Postcards, Fee Calculator, Messaging. For Client Experience: Onboarding, First Meeting, Year 1, Portal Design. For Advisor Experience: Client Management, Calendar Management, Advisor Digital Twin, Investment Process, Investment Research, Investment Technology, Client Meetings and Notes, Client Communications. For Tech Stack: Wealthbox, RightCapital, Automation, Data Flows. For Compliance: Asset Allocation, Models, ADV Filings, Policies. For Roadmap: Goals, Milestones, Future Features, Experiments."
-            },
-            stage: {
-                type: Type.STRING,
-                description: "The workflow stage. Default is 'workshopping'",
-                enum: ["workshopping", "ready_to_go", "current_best"]
-            },
-            cardType: {
-                type: Type.STRING,
-                description: "Whether this is an idea or a question. Default is 'idea'",
-                enum: ["idea", "question"]
-            }
-        },
-        required: ["text", "category", "subcategory"]
-    }
+  name: 'create_card',
+  description:
+    'Creates a new card on the project board. Use this when the user asks to create, add, or generate cards/ideas/items.',
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      text: {
+        type: Type.STRING,
+        description: 'The card title/text describing the task or idea',
+      },
+      category: {
+        type: Type.STRING,
+        description:
+          "The pillar/category. Must be one of: 'Prospect Experience', 'Client Experience', 'Advisor Experience', 'Tech Stack', 'Compliance', 'Roadmap'",
+      },
+      subcategory: {
+        type: Type.STRING,
+        description:
+          'The section within the category. For Prospect Experience: Landing Page, Postcards, Fee Calculator, Messaging. For Client Experience: Onboarding, First Meeting, Year 1, Portal Design. For Advisor Experience: Client Management, Calendar Management, Advisor Digital Twin, Investment Process, Investment Research, Investment Technology, Client Meetings and Notes, Client Communications. For Tech Stack: Wealthbox, RightCapital, Automation, Data Flows. For Compliance: Asset Allocation, Models, ADV Filings, Policies. For Roadmap: Goals, Milestones, Future Features, Experiments.',
+      },
+      stage: {
+        type: Type.STRING,
+        description: "The workflow stage. Default is 'workshopping'",
+        enum: ['workshopping', 'ready_to_go', 'current_best'],
+      },
+      cardType: {
+        type: Type.STRING,
+        description: "Whether this is an idea or a question. Default is 'idea'",
+        enum: ['idea', 'question'],
+      },
+    },
+    required: ['text', 'category', 'subcategory'],
+  },
 };
 
 interface Message {
-    id: string;
-    role: 'user' | 'model';
-    text: string;
+  id: string;
+  role: 'user' | 'model';
+  text: string;
 }
 
 const GeminiSidebar: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-    const { ideas, addIdea } = useIdeaStore();
+  const { ideas, addIdea } = useIdeaStore();
 
-    // --- PERSISTED STATE (from Zustand + Firebase) ---
-    const {
-        canonDocs,
-        isCanonLoading,
-        addCanonDoc,
-        deleteCanonDoc,
-        userContext,
-        projectConstraints,
-        isSettingsLoading,
-        saveSettings,
-        loadAll,
-    } = useConsultantStore();
+  // --- PERSISTED STATE (from Zustand + Firebase) ---
+  const {
+    canonDocs,
+    isCanonLoading,
+    addCanonDoc,
+    deleteCanonDoc,
+    userContext,
+    projectConstraints,
+    isSettingsLoading,
+    saveSettings,
+    loadAll,
+  } = useConsultantStore();
 
-    // --- VIEW STATE ---
-    const [activeView, setActiveView] = useState<'chat' | 'settings' | 'canon'>('chat');
+  // --- VIEW STATE ---
+  const [activeView, setActiveView] = useState<'chat' | 'settings' | 'canon'>(
+    'chat'
+  );
 
-    // --- CHAT STATE (Local only - not persisted) ---
-    const [messages, setMessages] = useState<Message[]>([
-        { id: 'welcome', role: 'model', text: "Hello David! I am aligned with your Master Index and constraints. How shall we proceed?" }
-    ]);
-    const [input, setInput] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const messagesEndRef = useRef<HTMLDivElement>(null);
+  // --- CHAT STATE (Local only - not persisted) ---
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: 'welcome',
+      role: 'model',
+      text: 'Hello David! I am aligned with your Master Index and constraints. How shall we proceed?',
+    },
+  ]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    // --- LOCAL SETTINGS FORM STATE (for editing before save) ---
-    const [editUserContext, setEditUserContext] = useState(userContext);
-    const [editProjectConstraints, setEditProjectConstraints] = useState(projectConstraints);
+  // --- LOCAL SETTINGS FORM STATE (for editing before save) ---
+  const [editUserContext, setEditUserContext] = useState(userContext);
+  const [editProjectConstraints, setEditProjectConstraints] =
+    useState(projectConstraints);
 
-    // --- NEW DOC FORM STATE ---
-    const [newDocTitle, setNewDocTitle] = useState('');
-    const [newDocContent, setNewDocContent] = useState('');
+  // --- NEW DOC FORM STATE ---
+  const [newDocTitle, setNewDocTitle] = useState('');
+  const [newDocContent, setNewDocContent] = useState('');
 
-    // --- EFFECTS ---
+  // --- EFFECTS ---
 
-    // Load data from Firebase on mount
-    useEffect(() => {
-        loadAll();
-    }, [loadAll]);
+  // Load data from Firebase on mount
+  useEffect(() => {
+    loadAll();
+  }, [loadAll]);
 
-    // Sync local form state when store values change (after load)
-    useEffect(() => {
-        setEditUserContext(userContext);
-        setEditProjectConstraints(projectConstraints);
-    }, [userContext, projectConstraints]);
+  // Sync local form state when store values change (after load)
+  useEffect(() => {
+    setEditUserContext(userContext);
+    setEditProjectConstraints(projectConstraints);
+  }, [userContext, projectConstraints]);
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    if (activeView === 'chat') {
+      scrollToBottom();
+    }
+  }, [messages, activeView]);
+
+  // --- HANDLERS ---
+
+  const handleAddDoc = () => {
+    if (!newDocTitle.trim() || !newDocContent.trim()) return;
+    addCanonDoc(newDocTitle.trim(), newDocContent.trim());
+    setNewDocTitle('');
+    setNewDocContent('');
+  };
+
+  const handleSaveSettings = () => {
+    saveSettings(editUserContext, editProjectConstraints);
+    setActiveView('chat');
+  };
+
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const userMsg: Message = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      text: input,
     };
+    setMessages((prev) => [...prev, userMsg]);
+    setInput('');
+    setIsLoading(true);
 
-    useEffect(() => {
-        if (activeView === 'chat') {
-            scrollToBottom();
-        }
-    }, [messages, activeView]);
+    try {
+      const ai = new GoogleGenAI({
+        apiKey: import.meta.env.VITE_GEMINI_API_KEY,
+      });
 
-    // --- HANDLERS ---
+      // 1. Prepare Board Context (Dynamic from Store)
+      const ideaContext = ideas
+        .map((i) => `- [${i.category}]: ${i.text}`)
+        .join('\n');
 
-    const handleAddDoc = () => {
-        if (!newDocTitle.trim() || !newDocContent.trim()) return;
-        addCanonDoc(newDocTitle.trim(), newDocContent.trim());
-        setNewDocTitle('');
-        setNewDocContent('');
-    };
+      const today = new Date().toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
 
-    const handleSaveSettings = () => {
-        saveSettings(editUserContext, editProjectConstraints);
-        setActiveView('chat');
-    };
+      // 2. Prepare Canon Context (The Constitution) - FROM FIREBASE
+      const canonContext = canonDocs
+        .map(
+          (doc) =>
+            `DOCUMENT: ${doc.title.toUpperCase()}\nCONTENT:\n${doc.content}\n---`
+        )
+        .join('\n');
 
-    const handleSend = async () => {
-        if (!input.trim() || isLoading) return;
-
-        const userMsg: Message = { id: crypto.randomUUID(), role: 'user', text: input };
-        setMessages(prev => [...prev, userMsg]);
-        setInput('');
-        setIsLoading(true);
-
-        try {
-            const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
-
-            // 1. Prepare Board Context (Dynamic from Store)
-            const ideaContext = ideas.map(i =>
-                `- [${i.category}]: ${i.text}`
-            ).join('\n');
-
-            const today = new Date().toLocaleDateString('en-US', {
-                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-            });
-
-            // 2. Prepare Canon Context (The Constitution) - FROM FIREBASE
-            const canonContext = canonDocs.map(doc =>
-                `DOCUMENT: ${doc.title.toUpperCase()}\nCONTENT:\n${doc.content}\n---`
-            ).join('\n');
-
-            // 3. Construct the System Instruction (using persisted settings)
-            const systemInstruction = `
+      // 3. Construct the System Instruction (using persisted settings)
+      const systemInstruction = `
             Role: You are the Guardian of the RIA Project. You are an expert Consultant.
 
             CRITICAL INSTRUCTIONS:
@@ -188,321 +225,368 @@ const GeminiSidebar: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             ${ideaContext}
             `;
 
-            // 4. Prepare History (Memory) - local messages only
-            const historyContents = messages
-                .filter(m => m.id !== 'welcome')
-                .map(m => ({
-                    role: m.role,
-                    parts: [{ text: m.text }]
-                }));
+      // 4. Prepare History (Memory) - local messages only
+      const historyContents = messages
+        .filter((m) => m.id !== 'welcome')
+        .map((m) => ({
+          role: m.role,
+          parts: [{ text: m.text }],
+        }));
 
-            // 5. Execute API Call with Function Calling Tools
-            const result = await ai.models.generateContent({
-                model: 'gemini-2.0-flash',
-                config: {
-                    systemInstruction: { parts: [{ text: systemInstruction }] },
-                    tools: [{ functionDeclarations: [createCardTool] }],
-                },
-                contents: [
-                    ...historyContents,
-                    { role: 'user', parts: [{ text: userMsg.text }] }
-                ]
-            });
+      // 5. Execute API Call with Function Calling Tools
+      const result = await ai.models.generateContent({
+        model: 'gemini-2.0-flash',
+        config: {
+          systemInstruction: { parts: [{ text: systemInstruction }] },
+          tools: [{ functionDeclarations: [createCardTool] }],
+        },
+        contents: [
+          ...historyContents,
+          { role: 'user', parts: [{ text: userMsg.text }] },
+        ],
+      });
 
-            // 6. Process the response - check for function calls
-            const createdCards: string[] = [];
-            let hasTextResponse = false;
-            let textResponse = '';
+      // 6. Process the response - check for function calls
+      const createdCards: string[] = [];
+      let hasTextResponse = false;
+      let textResponse = '';
 
-            // Access the response candidates
-            const candidates = result.candidates;
-            if (candidates && candidates.length > 0) {
-                const parts = candidates[0].content?.parts || [];
+      // Access the response candidates
+      const candidates = result.candidates;
+      if (candidates && candidates.length > 0) {
+        const parts = candidates[0].content?.parts || [];
 
-                for (const part of parts) {
-                    // Check if this part is a function call
-                    if (part.functionCall) {
-                        const { name, args } = part.functionCall;
+        for (const part of parts) {
+          // Check if this part is a function call
+          if (part.functionCall) {
+            const { name, args } = part.functionCall;
 
-                        if (name === 'create_card' && args) {
-                            // Execute the create_card function
-                            const cardArgs = args as {
-                                text: string;
-                                category: string;
-                                subcategory: string;
-                                stage?: string;
-                                cardType?: string;
-                            };
+            if (name === 'create_card' && args) {
+              // Execute the create_card function
+              const cardArgs = args as {
+                text: string;
+                category: string;
+                subcategory: string;
+                stage?: string;
+                cardType?: string;
+              };
 
-                            // Map category name to code
-                            const categoryCode = CATEGORY_MAP[cardArgs.category.toLowerCase()] || 'B';
+              // Map category name to code
+              const categoryCode =
+                CATEGORY_MAP[cardArgs.category.toLowerCase()] || 'B';
 
-                            // Validate subcategory (extract page names from PageDefinition objects)
-                            const validSubcategoryNames = CATEGORY_STRUCTURE[categoryCode].pages.map(p => p.name);
-                            const subcategory = validSubcategoryNames.includes(cardArgs.subcategory)
-                                ? cardArgs.subcategory
-                                : validSubcategoryNames[0];
+              // Validate subcategory (extract page names from PageDefinition objects)
+              const validSubcategoryNames = CATEGORY_STRUCTURE[
+                categoryCode
+              ].pages.map((p) => p.name);
+              const subcategory = validSubcategoryNames.includes(
+                cardArgs.subcategory
+              )
+                ? cardArgs.subcategory
+                : validSubcategoryNames[0];
 
-                            // Map stage
-                            const stageMap: Record<string, Stage> = {
-                                'workshopping': 'workshopping',
-                                'ready_to_go': 'ready_to_go',
-                                'current_best': 'current_best',
-                            };
-                            const stage = stageMap[cardArgs.stage || 'workshopping'] || 'workshopping';
+              // Map stage
+              const stageMap: Record<string, Stage> = {
+                workshopping: 'workshopping',
+                ready_to_go: 'ready_to_go',
+                current_best: 'current_best',
+              };
+              const stage =
+                stageMap[cardArgs.stage || 'workshopping'] || 'workshopping';
 
-                            await addIdea({
-                                text: cardArgs.text,
-                                category: categoryCode,
-                                subcategory: subcategory,
-                                stage: stage,
-                                type: (cardArgs.cardType as 'idea' | 'question') || 'idea',
-                                goal: '',
-                                images: [],
-                                notes: [],
-                                linkedDocuments: [],
-                            });
+              await addIdea({
+                text: cardArgs.text,
+                category: categoryCode,
+                subcategory: subcategory,
+                stage: stage,
+                type: (cardArgs.cardType as 'idea' | 'question') || 'idea',
+                goal: '',
+                images: [],
+                notes: [],
+                linkedDocuments: [],
+              });
 
-                            createdCards.push(`• ${cardArgs.text} → ${CATEGORY_STRUCTURE[categoryCode].label} / ${subcategory}`);
-                        }
-                    }
-
-                    // Check if this part is text
-                    if (part.text) {
-                        hasTextResponse = true;
-                        textResponse += part.text;
-                    }
-                }
+              createdCards.push(
+                `• ${cardArgs.text} → ${CATEGORY_STRUCTURE[categoryCode].label} / ${subcategory}`
+              );
             }
+          }
 
-            // 7. Build the response message
-            let finalMessage = '';
-
-            if (createdCards.length > 0) {
-                finalMessage = `✅ Created ${createdCards.length} card${createdCards.length > 1 ? 's' : ''} on your board:\n\n${createdCards.join('\n')}`;
-                if (hasTextResponse && textResponse.trim()) {
-                    finalMessage += `\n\n${textResponse}`;
-                }
-            } else if (hasTextResponse) {
-                finalMessage = textResponse;
-            } else {
-                finalMessage = "I couldn't generate a response.";
-            }
-
-            const modelMsg: Message = {
-                id: crypto.randomUUID(),
-                role: 'model',
-                text: finalMessage
-            };
-            setMessages(prev => [...prev, modelMsg]);
-
-        } catch (error) {
-            console.error("Gemini Error:", error);
-            setMessages(prev => [...prev, {
-                id: crypto.randomUUID(),
-                role: 'model',
-                text: "Connection error. Please check your API key."
-            }]);
-        } finally {
-            setIsLoading(false);
+          // Check if this part is text
+          if (part.text) {
+            hasTextResponse = true;
+            textResponse += part.text;
+          }
         }
-    };
+      }
 
-    // --- LOADING STATE ---
-    const isDataLoading = isCanonLoading || isSettingsLoading;
+      // 7. Build the response message
+      let finalMessage = '';
 
-    return (
-        <div className="flex flex-col h-full bg-white border-l border-gray-200 shadow-xl w-96 fixed right-0 top-0 z-50">
-            {/* Header */}
-            <div className="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-                <div className="flex items-center gap-2 text-indigo-700 font-bold">
-                    <Sparkles size={20} />
-                    <span>Gemini Consultant</span>
-                </div>
+      if (createdCards.length > 0) {
+        finalMessage = `✅ Created ${createdCards.length} card${createdCards.length > 1 ? 's' : ''} on your board:\n\n${createdCards.join('\n')}`;
+        if (hasTextResponse && textResponse.trim()) {
+          finalMessage += `\n\n${textResponse}`;
+        }
+      } else if (hasTextResponse) {
+        finalMessage = textResponse;
+      } else {
+        finalMessage = "I couldn't generate a response.";
+      }
 
-                {/* View Toggles */}
-                <div className="flex gap-1 bg-gray-200 rounded p-1">
-                    <button
-                        onClick={() => setActiveView('chat')}
-                        className={`p-1.5 rounded transition-all ${activeView === 'chat' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                        title="Chat"
-                    >
-                        <Bot size={16} />
-                    </button>
-                    <button
-                        onClick={() => setActiveView('canon')}
-                        className={`p-1.5 rounded transition-all ${activeView === 'canon' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                        title="Knowledge Base (Canon)"
-                    >
-                        <Database size={16} />
-                    </button>
-                    <button
-                        onClick={() => setActiveView('settings')}
-                        className={`p-1.5 rounded transition-all ${activeView === 'settings' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                        title="Settings"
-                    >
-                        <Settings size={16} />
-                    </button>
-                </div>
+      const modelMsg: Message = {
+        id: crypto.randomUUID(),
+        role: 'model',
+        text: finalMessage,
+      };
+      setMessages((prev) => [...prev, modelMsg]);
+    } catch (error) {
+      console.error('Gemini Error:', error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          role: 'model',
+          text: 'Connection error. Please check your API key.',
+        },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-                <button onClick={onClose} className="text-gray-400 hover:text-gray-700 ml-2">
-                    <X size={20} />
-                </button>
-            </div>
+  // --- LOADING STATE ---
+  const isDataLoading = isCanonLoading || isSettingsLoading;
 
-            {/* Loading Overlay */}
-            {isDataLoading && (
-                <div className="flex-1 flex items-center justify-center bg-gray-50">
-                    <div className="text-center">
-                        <Loader2 size={24} className="animate-spin text-indigo-500 mx-auto mb-2" />
-                        <p className="text-sm text-gray-500">Loading Knowledge Base...</p>
-                    </div>
-                </div>
-            )}
-
-            {/* --- VIEW: CHAT --- */}
-            {!isDataLoading && activeView === 'chat' && (
-                <>
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-                        {messages.map((msg) => (
-                            <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[85%] rounded-lg p-3 text-sm leading-relaxed ${
-                                    msg.role === 'user'
-                                        ? 'bg-indigo-600 text-white rounded-br-none shadow-md'
-                                        : 'bg-white border border-gray-200 text-gray-800 rounded-bl-none shadow-sm'
-                                }`}>
-                                    {msg.role === 'model' && <Bot size={16} className="mb-1 text-indigo-500" />}
-                                    <div className="whitespace-pre-wrap markdown-body">{msg.text}</div>
-                                </div>
-                            </div>
-                        ))}
-                        {isLoading && (
-                            <div className="flex justify-start">
-                                <div className="bg-white border border-gray-200 rounded-lg p-3 rounded-bl-none shadow-sm flex items-center gap-2">
-                                    <Loader2 size={16} className="animate-spin text-indigo-500" />
-                                    <span className="text-xs text-gray-500">Aligning with Canon...</span>
-                                </div>
-                            </div>
-                        )}
-                        <div ref={messagesEndRef} />
-                    </div>
-                    <div className="p-4 bg-white border-t border-gray-200">
-                        <div className="relative">
-                            <input
-                                type="text"
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                                placeholder="Ask for advice..."
-                                disabled={isLoading}
-                                className="w-full pl-4 pr-12 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm transition-all shadow-sm"
-                            />
-                            <button
-                                onClick={handleSend}
-                                disabled={!input.trim() || isLoading}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                                <Send size={16} />
-                            </button>
-                        </div>
-                    </div>
-                </>
-            )}
-
-            {/* --- VIEW: CANON (KNOWLEDGE BASE) --- */}
-            {!isDataLoading && activeView === 'canon' && (
-                <div className="flex-1 p-4 bg-gray-50 overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
-                    <h3 className="text-sm font-bold text-gray-700 mb-2">Canonical Documents</h3>
-                    <p className="text-xs text-gray-500 mb-4">The AI will strictly align all advice with these documents. Changes are saved automatically.</p>
-
-                    {/* List of Docs */}
-                    <div className="space-y-3 mb-6">
-                        {canonDocs.map(doc => (
-                            <div key={doc.id} className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm group">
-                                <div className="flex justify-between items-start mb-2">
-                                    <span className="font-bold text-indigo-700 text-sm">{doc.title}</span>
-                                    <button onClick={() => deleteCanonDoc(doc.id)} className="text-gray-300 hover:text-red-500">
-                                        <Trash2 size={14} />
-                                    </button>
-                                </div>
-                                <div className="text-xs text-gray-600 line-clamp-3 font-mono bg-gray-50 p-1 rounded">
-                                    {doc.content}
-                                </div>
-                            </div>
-                        ))}
-                        {canonDocs.length === 0 && (
-                            <p className="text-sm text-gray-400 italic">No documents yet. Add your Master Index below.</p>
-                        )}
-                    </div>
-
-                    {/* Add New Doc */}
-                    <div className="bg-white p-3 rounded-lg border border-indigo-100 shadow-sm">
-                        <div className="text-xs font-bold text-indigo-600 uppercase mb-2">Add New Document</div>
-                        <input
-                            className="w-full mb-2 p-2 text-sm border border-gray-300 rounded focus:border-indigo-500 outline-none"
-                            placeholder="Title (e.g. Master Index)"
-                            value={newDocTitle}
-                            onChange={(e) => setNewDocTitle(e.target.value)}
-                        />
-                        <textarea
-                            className="w-full h-32 p-2 text-sm border border-gray-300 rounded focus:border-indigo-500 outline-none resize-none mb-2 font-mono text-xs"
-                            placeholder="Paste full text here..."
-                            value={newDocContent}
-                            onChange={(e) => setNewDocContent(e.target.value)}
-                        />
-                        <button
-                            onClick={handleAddDoc}
-                            disabled={!newDocTitle || !newDocContent}
-                            className="w-full py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm flex items-center justify-center gap-2 disabled:opacity-50"
-                        >
-                            <Plus size={16} /> Add to Knowledge Base
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {/* --- VIEW: SETTINGS --- */}
-            {!isDataLoading && activeView === 'settings' && (
-                <div className="flex-1 p-4 space-y-6 overflow-y-auto bg-gray-50 animate-in fade-in zoom-in-95 duration-200">
-                    <div>
-                        <h3 className="text-sm font-bold text-gray-700 mb-4 border-b pb-2">Consultant Configuration</h3>
-
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
-                            Who are you? (Context)
-                        </label>
-                        <textarea
-                            value={editUserContext}
-                            onChange={(e) => setEditUserContext(e.target.value)}
-                            className="w-full h-24 p-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none shadow-sm"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
-                            Project Rules & Restrictions
-                        </label>
-                        <textarea
-                            value={editProjectConstraints}
-                            onChange={(e) => setEditProjectConstraints(e.target.value)}
-                            className="w-full h-48 p-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none shadow-sm font-mono"
-                        />
-                        <p className="text-xs text-gray-400 mt-1">
-                            Add "Do Not Use" lists here to prevent Gemini from suggesting restricted vendors or tools.
-                        </p>
-                    </div>
-
-                    <div className="pt-4 border-t border-gray-200">
-                        <button
-                            onClick={handleSaveSettings}
-                            className="w-full py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium transition-colors shadow-sm"
-                        >
-                            Save Settings
-                        </button>
-                    </div>
-                </div>
-            )}
+  return (
+    <div className="flex flex-col h-full bg-white border-l border-gray-200 shadow-xl w-96 fixed right-0 top-0 z-50">
+      {/* Header */}
+      <div className="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+        <div className="flex items-center gap-2 text-indigo-700 font-bold">
+          <Sparkles size={20} />
+          <span>Gemini Consultant</span>
         </div>
-    );
+
+        {/* View Toggles */}
+        <div className="flex gap-1 bg-gray-200 rounded p-1">
+          <button
+            onClick={() => setActiveView('chat')}
+            className={`p-1.5 rounded transition-all ${activeView === 'chat' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            title="Chat"
+          >
+            <Bot size={16} />
+          </button>
+          <button
+            onClick={() => setActiveView('canon')}
+            className={`p-1.5 rounded transition-all ${activeView === 'canon' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            title="Knowledge Base (Canon)"
+          >
+            <Database size={16} />
+          </button>
+          <button
+            onClick={() => setActiveView('settings')}
+            className={`p-1.5 rounded transition-all ${activeView === 'settings' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            title="Settings"
+          >
+            <Settings size={16} />
+          </button>
+        </div>
+
+        <button
+          onClick={onClose}
+          className="text-gray-400 hover:text-gray-700 ml-2"
+        >
+          <X size={20} />
+        </button>
+      </div>
+
+      {/* Loading Overlay */}
+      {isDataLoading && (
+        <div className="flex-1 flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <Loader2
+              size={24}
+              className="animate-spin text-indigo-500 mx-auto mb-2"
+            />
+            <p className="text-sm text-gray-500">Loading Knowledge Base...</p>
+          </div>
+        </div>
+      )}
+
+      {/* --- VIEW: CHAT --- */}
+      {!isDataLoading && activeView === 'chat' && (
+        <>
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+            {messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-[85%] rounded-lg p-3 text-sm leading-relaxed ${
+                    msg.role === 'user'
+                      ? 'bg-indigo-600 text-white rounded-br-none shadow-md'
+                      : 'bg-white border border-gray-200 text-gray-800 rounded-bl-none shadow-sm'
+                  }`}
+                >
+                  {msg.role === 'model' && (
+                    <Bot size={16} className="mb-1 text-indigo-500" />
+                  )}
+                  <div className="whitespace-pre-wrap markdown-body">
+                    {msg.text}
+                  </div>
+                </div>
+              </div>
+            ))}
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="bg-white border border-gray-200 rounded-lg p-3 rounded-bl-none shadow-sm flex items-center gap-2">
+                  <Loader2 size={16} className="animate-spin text-indigo-500" />
+                  <span className="text-xs text-gray-500">
+                    Aligning with Canon...
+                  </span>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+          <div className="p-4 bg-white border-t border-gray-200">
+            <div className="relative">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                placeholder="Ask for advice..."
+                disabled={isLoading}
+                className="w-full pl-4 pr-12 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm transition-all shadow-sm"
+              />
+              <button
+                onClick={handleSend}
+                disabled={!input.trim() || isLoading}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <Send size={16} />
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* --- VIEW: CANON (KNOWLEDGE BASE) --- */}
+      {!isDataLoading && activeView === 'canon' && (
+        <div className="flex-1 p-4 bg-gray-50 overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+          <h3 className="text-sm font-bold text-gray-700 mb-2">
+            Canonical Documents
+          </h3>
+          <p className="text-xs text-gray-500 mb-4">
+            The AI will strictly align all advice with these documents. Changes
+            are saved automatically.
+          </p>
+
+          {/* List of Docs */}
+          <div className="space-y-3 mb-6">
+            {canonDocs.map((doc) => (
+              <div
+                key={doc.id}
+                className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm group"
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <span className="font-bold text-indigo-700 text-sm">
+                    {doc.title}
+                  </span>
+                  <button
+                    onClick={() => deleteCanonDoc(doc.id)}
+                    className="text-gray-300 hover:text-red-500"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+                <div className="text-xs text-gray-600 line-clamp-3 font-mono bg-gray-50 p-1 rounded">
+                  {doc.content}
+                </div>
+              </div>
+            ))}
+            {canonDocs.length === 0 && (
+              <p className="text-sm text-gray-400 italic">
+                No documents yet. Add your Master Index below.
+              </p>
+            )}
+          </div>
+
+          {/* Add New Doc */}
+          <div className="bg-white p-3 rounded-lg border border-indigo-100 shadow-sm">
+            <div className="text-xs font-bold text-indigo-600 uppercase mb-2">
+              Add New Document
+            </div>
+            <input
+              className="w-full mb-2 p-2 text-sm border border-gray-300 rounded focus:border-indigo-500 outline-none"
+              placeholder="Title (e.g. Master Index)"
+              value={newDocTitle}
+              onChange={(e) => setNewDocTitle(e.target.value)}
+            />
+            <textarea
+              className="w-full h-32 p-2 text-sm border border-gray-300 rounded focus:border-indigo-500 outline-none resize-none mb-2 font-mono text-xs"
+              placeholder="Paste full text here..."
+              value={newDocContent}
+              onChange={(e) => setNewDocContent(e.target.value)}
+            />
+            <button
+              onClick={handleAddDoc}
+              disabled={!newDocTitle || !newDocContent}
+              className="w-full py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <Plus size={16} /> Add to Knowledge Base
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* --- VIEW: SETTINGS --- */}
+      {!isDataLoading && activeView === 'settings' && (
+        <div className="flex-1 p-4 space-y-6 overflow-y-auto bg-gray-50 animate-in fade-in zoom-in-95 duration-200">
+          <div>
+            <h3 className="text-sm font-bold text-gray-700 mb-4 border-b pb-2">
+              Consultant Configuration
+            </h3>
+
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
+              Who are you? (Context)
+            </label>
+            <textarea
+              value={editUserContext}
+              onChange={(e) => setEditUserContext(e.target.value)}
+              className="w-full h-24 p-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none shadow-sm"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
+              Project Rules & Restrictions
+            </label>
+            <textarea
+              value={editProjectConstraints}
+              onChange={(e) => setEditProjectConstraints(e.target.value)}
+              className="w-full h-48 p-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none shadow-sm font-mono"
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              Add "Do Not Use" lists here to prevent Gemini from suggesting
+              restricted vendors or tools.
+            </p>
+          </div>
+
+          <div className="pt-4 border-t border-gray-200">
+            <button
+              onClick={handleSaveSettings}
+              className="w-full py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium transition-colors shadow-sm"
+            >
+              Save Settings
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default GeminiSidebar;

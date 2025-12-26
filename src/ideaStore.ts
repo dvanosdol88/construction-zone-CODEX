@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import * as firebaseService from './services/firebaseService';
-import type { CustomPage, PageOrder } from './services/firebaseService';
+import type { CustomPage } from './services/firebaseService';
 
 // Re-export CustomPage type for use in components
 export type { CustomPage } from './services/firebaseService';
@@ -11,7 +11,11 @@ export type Category = 'A' | 'B' | 'F' | 'C' | 'D' | 'E';
 export const PAGE_NAME_MAX_LENGTH = 50;
 export const PAGE_DESCRIPTION_MAX_LENGTH = 200;
 
-export type Stage = 'current_best' | 'workshopping' | 'ready_to_go' | 'archived';
+export type Stage =
+  | 'current_best'
+  | 'workshopping'
+  | 'ready_to_go'
+  | 'archived';
 
 // Page definition with name and description
 export interface PageDefinition {
@@ -28,10 +32,25 @@ export const CATEGORY_STRUCTURE: Record<
     label: 'Prospect Experience',
     subtitle: 'Marketing and Onboarding',
     pages: [
-      { name: 'Landing Page', description: 'Design and optimize your website landing pages for prospect conversion.' },
-      { name: 'Postcards', description: 'Plan direct mail campaigns and postcard marketing materials.' },
-      { name: 'Fee Calculator', description: 'Build and refine your fee calculator tool for prospects.' },
-      { name: 'Messaging', description: 'Craft compelling messaging and value propositions for prospects.' },
+      {
+        name: 'Landing Page',
+        description:
+          'Design and optimize your website landing pages for prospect conversion.',
+      },
+      {
+        name: 'Postcards',
+        description:
+          'Plan direct mail campaigns and postcard marketing materials.',
+      },
+      {
+        name: 'Fee Calculator',
+        description: 'Build and refine your fee calculator tool for prospects.',
+      },
+      {
+        name: 'Messaging',
+        description:
+          'Craft compelling messaging and value propositions for prospects.',
+      },
     ],
   },
   B: {
@@ -39,10 +58,24 @@ export const CATEGORY_STRUCTURE: Record<
     label: 'Client Experience',
     subtitle: 'Operations',
     pages: [
-      { name: 'Onboarding', description: 'Organize the client onboarding workflow and requirements.' },
-      { name: 'First Meeting', description: 'Plan and track first meeting preparation and follow-ups.' },
-      { name: 'Year 1', description: 'Define the first-year client experience and touchpoints.' },
-      { name: 'Portal Design', description: 'Design and improve the client portal interface and features.' },
+      {
+        name: 'Onboarding',
+        description:
+          'Organize the client onboarding workflow and requirements.',
+      },
+      {
+        name: 'First Meeting',
+        description: 'Plan and track first meeting preparation and follow-ups.',
+      },
+      {
+        name: 'Year 1',
+        description: 'Define the first-year client experience and touchpoints.',
+      },
+      {
+        name: 'Portal Design',
+        description:
+          'Design and improve the client portal interface and features.',
+      },
     ],
   },
   F: {
@@ -50,14 +83,41 @@ export const CATEGORY_STRUCTURE: Record<
     label: 'Advisor Experience',
     subtitle: 'Operations',
     pages: [
-      { name: 'Client Management', description: 'Organize client relationship management workflows and processes.' },
-      { name: 'Calendar Management', description: 'Streamline scheduling, meetings, and time management.' },
-      { name: 'Advisor Digital Twin', description: 'Build AI-assisted advisor tools and automation.' },
-      { name: 'Investment Process', description: 'Document and refine the investment decision-making process.' },
-      { name: 'Investment Research', description: 'Organize research workflows and due diligence processes.' },
-      { name: 'Investment Technology', description: 'Evaluate and integrate investment technology tools.' },
-      { name: 'Client Meetings and Notes', description: 'Standardize meeting preparation and note-taking workflows.' },
-      { name: 'Client Communications', description: 'Plan regular client communications and touchpoints.' },
+      {
+        name: 'Client Management',
+        description:
+          'Organize client relationship management workflows and processes.',
+      },
+      {
+        name: 'Calendar Management',
+        description: 'Streamline scheduling, meetings, and time management.',
+      },
+      {
+        name: 'Advisor Digital Twin',
+        description: 'Build AI-assisted advisor tools and automation.',
+      },
+      {
+        name: 'Investment Process',
+        description:
+          'Document and refine the investment decision-making process.',
+      },
+      {
+        name: 'Investment Research',
+        description: 'Organize research workflows and due diligence processes.',
+      },
+      {
+        name: 'Investment Technology',
+        description: 'Evaluate and integrate investment technology tools.',
+      },
+      {
+        name: 'Client Meetings and Notes',
+        description:
+          'Standardize meeting preparation and note-taking workflows.',
+      },
+      {
+        name: 'Client Communications',
+        description: 'Plan regular client communications and touchpoints.',
+      },
     ],
   },
   C: {
@@ -65,20 +125,44 @@ export const CATEGORY_STRUCTURE: Record<
     label: 'Tech Stack',
     subtitle: 'Vendors',
     pages: [
-      { name: 'Wealthbox', description: 'Configure and optimize Wealthbox CRM workflows.' },
-      { name: 'RightCapital', description: 'Set up and customize RightCapital planning features.' },
-      { name: 'Automation', description: 'Build automation workflows across your tech stack.' },
-      { name: 'Data Flows', description: 'Map and optimize data integrations between systems.' },
+      {
+        name: 'Wealthbox',
+        description: 'Configure and optimize Wealthbox CRM workflows.',
+      },
+      {
+        name: 'RightCapital',
+        description: 'Set up and customize RightCapital planning features.',
+      },
+      {
+        name: 'Automation',
+        description: 'Build automation workflows across your tech stack.',
+      },
+      {
+        name: 'Data Flows',
+        description: 'Map and optimize data integrations between systems.',
+      },
     ],
   },
   D: {
     emoji: 'scale',
     label: 'Compliance',
     pages: [
-      { name: 'Asset Allocation', description: 'Document asset allocation policies and guidelines.' },
-      { name: 'Models', description: 'Define and maintain investment model documentation.' },
-      { name: 'ADV Filings', description: 'Track ADV filing requirements and updates.' },
-      { name: 'Policies', description: 'Maintain compliance policies and procedures.' },
+      {
+        name: 'Asset Allocation',
+        description: 'Document asset allocation policies and guidelines.',
+      },
+      {
+        name: 'Models',
+        description: 'Define and maintain investment model documentation.',
+      },
+      {
+        name: 'ADV Filings',
+        description: 'Track ADV filing requirements and updates.',
+      },
+      {
+        name: 'Policies',
+        description: 'Maintain compliance policies and procedures.',
+      },
     ],
   },
   E: {
@@ -86,10 +170,23 @@ export const CATEGORY_STRUCTURE: Record<
     label: 'Roadmap',
     subtitle: 'Growth',
     pages: [
-      { name: 'Goals', description: 'Set and track business goals and key results.' },
-      { name: 'Milestones', description: 'Plan major milestones and achievement targets.' },
-      { name: 'Future Features', description: 'Capture ideas for future product and service enhancements.' },
-      { name: 'Experiments', description: 'Document experiments and tests to run.' },
+      {
+        name: 'Goals',
+        description: 'Set and track business goals and key results.',
+      },
+      {
+        name: 'Milestones',
+        description: 'Plan major milestones and achievement targets.',
+      },
+      {
+        name: 'Future Features',
+        description:
+          'Capture ideas for future product and service enhancements.',
+      },
+      {
+        name: 'Experiments',
+        description: 'Document experiments and tests to run.',
+      },
     ],
   },
 };
@@ -129,20 +226,41 @@ interface IdeaStore {
   removeIdea: (id: string) => Promise<void>;
   setIdeaStage: (id: string, stage: Stage) => Promise<void>;
   toggleIdeaPinned: (id: string) => Promise<void>;
-  toggleIdeaFocus: (id: string, category: Category, subcategory: string) => Promise<void>;
+  toggleIdeaFocus: (
+    id: string,
+    category: Category,
+    subcategory: string
+  ) => Promise<void>;
   linkDocument: (ideaId: string, docId: string) => Promise<void>;
   unlinkDocument: (ideaId: string, docId: string) => Promise<void>;
   // Custom pages actions
   loadCustomPages: () => Promise<void>;
-  addCustomPage: (category: Category, pageName: string, description?: string) => Promise<{ success: boolean; error?: string }>;
-  deleteCustomPage: (pageId: string, handleOrphanedIdeas: 'delete' | 'archive') => Promise<void>;
-  renameCustomPage: (pageId: string, newName: string) => Promise<{ success: boolean; error?: string }>;
-  updateCustomPageDescription: (pageId: string, description: string) => Promise<{ success: boolean; error?: string }>;
+  addCustomPage: (
+    category: Category,
+    pageName: string,
+    description?: string
+  ) => Promise<{ success: boolean; error?: string }>;
+  deleteCustomPage: (
+    pageId: string,
+    handleOrphanedIdeas: 'delete' | 'archive'
+  ) => Promise<void>;
+  renameCustomPage: (
+    pageId: string,
+    newName: string
+  ) => Promise<{ success: boolean; error?: string }>;
+  updateCustomPageDescription: (
+    pageId: string,
+    description: string
+  ) => Promise<{ success: boolean; error?: string }>;
   getPagesForCategory: (category: Category) => string[];
   getPageDescription: (category: Category, pageName: string) => string;
   getIdeasForPage: (category: Category, pageName: string) => Idea[];
   isCustomPage: (category: Category, pageName: string) => boolean;
-  validatePageName: (category: Category, pageName: string, excludePageId?: string) => { valid: boolean; error?: string };
+  validatePageName: (
+    category: Category,
+    pageName: string,
+    excludePageId?: string
+  ) => { valid: boolean; error?: string };
   // Page ordering
   loadPageOrders: () => Promise<void>;
   reorderPages: (category: Category, newOrder: string[]) => Promise<void>;
@@ -206,10 +324,7 @@ export const useIdeaStore = create<IdeaStore>()((set, get) => ({
       set({ ideas, isLoading: false });
 
       // Also load custom pages and page orders
-      await Promise.all([
-        get().loadCustomPages(),
-        get().loadPageOrders(),
-      ]);
+      await Promise.all([get().loadCustomPages(), get().loadPageOrders()]);
     } catch (error) {
       console.error('Failed to load ideas from Firebase:', error);
       set({
@@ -382,7 +497,9 @@ export const useIdeaStore = create<IdeaStore>()((set, get) => ({
     const idea = ideas.find((i) => i.id === ideaId);
     if (!idea) return;
 
-    const linkedDocuments = (idea.linkedDocuments || []).filter((id) => id !== docId);
+    const linkedDocuments = (idea.linkedDocuments || []).filter(
+      (id) => id !== docId
+    );
 
     // Optimistic update
     set((state) => ({
@@ -427,12 +544,17 @@ export const useIdeaStore = create<IdeaStore>()((set, get) => ({
 
     // Check max length
     if (trimmed.length > PAGE_NAME_MAX_LENGTH) {
-      return { valid: false, error: `Page name must be ${PAGE_NAME_MAX_LENGTH} characters or less` };
+      return {
+        valid: false,
+        error: `Page name must be ${PAGE_NAME_MAX_LENGTH} characters or less`,
+      };
     }
 
     // Check duplicates against default pages (now uses PageDefinition.name)
     const defaultPages = CATEGORY_STRUCTURE[category].pages;
-    if (defaultPages.some((p) => p.name.toLowerCase() === trimmed.toLowerCase())) {
+    if (
+      defaultPages.some((p) => p.name.toLowerCase() === trimmed.toLowerCase())
+    ) {
       return { valid: false, error: 'A page with this name already exists' };
     }
 
@@ -441,7 +563,11 @@ export const useIdeaStore = create<IdeaStore>()((set, get) => ({
     const customPagesForCategory = customPages.filter(
       (p) => p.category === category && p.id !== excludePageId
     );
-    if (customPagesForCategory.some((p) => p.pageName.toLowerCase() === trimmed.toLowerCase())) {
+    if (
+      customPagesForCategory.some(
+        (p) => p.pageName.toLowerCase() === trimmed.toLowerCase()
+      )
+    ) {
       return { valid: false, error: 'A page with this name already exists' };
     }
 
@@ -481,7 +607,10 @@ export const useIdeaStore = create<IdeaStore>()((set, get) => ({
       set((state) => ({
         customPages: state.customPages.filter((p) => p.id !== newPage.id),
       }));
-      return { success: false, error: 'Failed to save page. Please try again.' };
+      return {
+        success: false,
+        error: 'Failed to save page. Please try again.',
+      };
     }
   },
 
@@ -507,7 +636,9 @@ export const useIdeaStore = create<IdeaStore>()((set, get) => ({
       if (orphanedIdeas.length > 0) {
         if (handleOrphanedIdeas === 'delete') {
           // Delete all orphaned ideas
-          await firebaseService.batchDeleteIdeas(orphanedIdeas.map((i) => i.id));
+          await firebaseService.batchDeleteIdeas(
+            orphanedIdeas.map((i) => i.id)
+          );
           set((state) => ({
             ideas: state.ideas.filter(
               (idea) =>
@@ -541,7 +672,9 @@ export const useIdeaStore = create<IdeaStore>()((set, get) => ({
       const { pageOrders } = get();
       const currentOrder = pageOrders[pageToDelete.category];
       if (currentOrder) {
-        const newOrder = currentOrder.filter((p) => p !== pageToDelete.pageName);
+        const newOrder = currentOrder.filter(
+          (p) => p !== pageToDelete.pageName
+        );
         await get().reorderPages(pageToDelete.category, newOrder);
       }
     } catch (error) {
@@ -562,7 +695,11 @@ export const useIdeaStore = create<IdeaStore>()((set, get) => ({
       return { success: false, error: 'Page not found' };
     }
 
-    const validation = get().validatePageName(pageToRename.category, newName, pageId);
+    const validation = get().validatePageName(
+      pageToRename.category,
+      newName,
+      pageId
+    );
     if (!validation.valid) {
       return { success: false, error: validation.error };
     }
@@ -586,13 +723,19 @@ export const useIdeaStore = create<IdeaStore>()((set, get) => ({
       // Update the custom page
       await firebaseService.updateCustomPage(pageId, { pageName: trimmedName });
       // Update all ideas that reference this page
-      await firebaseService.renamePageInIdeas(pageToRename.category, oldName, trimmedName);
+      await firebaseService.renamePageInIdeas(
+        pageToRename.category,
+        oldName,
+        trimmedName
+      );
 
       // Update pageOrders to reflect the renamed page
       const { pageOrders } = get();
       const currentOrder = pageOrders[pageToRename.category];
       if (currentOrder) {
-        const newOrder = currentOrder.map((p) => (p === oldName ? trimmedName : p));
+        const newOrder = currentOrder.map((p) =>
+          p === oldName ? trimmedName : p
+        );
         await get().reorderPages(pageToRename.category, newOrder);
       }
 
@@ -601,14 +744,19 @@ export const useIdeaStore = create<IdeaStore>()((set, get) => ({
       console.error('Failed to rename custom page:', error);
       // Reload to get correct state
       get().loadIdeas();
-      return { success: false, error: 'Failed to rename page. Please try again.' };
+      return {
+        success: false,
+        error: 'Failed to rename page. Please try again.',
+      };
     }
   },
 
   getPagesForCategory: (category) => {
     const { customPages, pageOrders } = get();
     // Extract page names from PageDefinition objects
-    const defaultPageNames = CATEGORY_STRUCTURE[category].pages.map((p) => p.name);
+    const defaultPageNames = CATEGORY_STRUCTURE[category].pages.map(
+      (p) => p.name
+    );
     const customPagesForCategory = customPages
       .filter((p) => p.category === category)
       .sort((a, b) => a.createdAt - b.createdAt)
@@ -636,7 +784,9 @@ export const useIdeaStore = create<IdeaStore>()((set, get) => ({
 
   getPageDescription: (category, pageName) => {
     // Check default pages first
-    const defaultPage = CATEGORY_STRUCTURE[category].pages.find((p) => p.name === pageName);
+    const defaultPage = CATEGORY_STRUCTURE[category].pages.find(
+      (p) => p.name === pageName
+    );
     if (defaultPage) {
       return defaultPage.description;
     }
@@ -660,24 +810,35 @@ export const useIdeaStore = create<IdeaStore>()((set, get) => ({
 
     // Validate description length
     if (trimmedDescription.length > PAGE_DESCRIPTION_MAX_LENGTH) {
-      return { success: false, error: `Description must be ${PAGE_DESCRIPTION_MAX_LENGTH} characters or less` };
+      return {
+        success: false,
+        error: `Description must be ${PAGE_DESCRIPTION_MAX_LENGTH} characters or less`,
+      };
     }
 
     // Optimistic update
     set((state) => ({
       customPages: state.customPages.map((p) =>
-        p.id === pageId ? { ...p, description: trimmedDescription, updatedAt: Date.now() } : p
+        p.id === pageId
+          ? { ...p, description: trimmedDescription, updatedAt: Date.now() }
+          : p
       ),
     }));
 
     try {
-      await firebaseService.updateCustomPage(pageId, { description: trimmedDescription, updatedAt: Date.now() });
+      await firebaseService.updateCustomPage(pageId, {
+        description: trimmedDescription,
+        updatedAt: Date.now(),
+      });
       return { success: true };
     } catch (error) {
       console.error('Failed to update page description:', error);
       // Reload to get correct state
       get().loadCustomPages();
-      return { success: false, error: 'Failed to update description. Please try again.' };
+      return {
+        success: false,
+        error: 'Failed to update description. Please try again.',
+      };
     }
   },
 
