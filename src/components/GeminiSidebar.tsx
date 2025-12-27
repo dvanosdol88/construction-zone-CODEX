@@ -10,6 +10,8 @@ import {
   Database,
   Trash2,
   Plus,
+  Mic,
+  MicOff,
 } from 'lucide-react';
 import {
   useIdeaStore,
@@ -117,6 +119,10 @@ const GeminiSidebar: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isConversationModeActive, setIsConversationModeActive] =
+    useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // --- LOCAL SETTINGS FORM STATE (for editing before save) ---
@@ -151,27 +157,122 @@ const GeminiSidebar: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     }
   }, [messages, activeView]);
 
-  // --- HANDLERS ---
+  useEffect(() => {
+    if (
+      isConversationModeActive &&
+      !isRecording &&
+      !isLoading &&
+      !isSpeaking
+    ) {
+      startRecording();
+    }
 
-  const handleAddDoc = () => {
-    if (!newDocTitle.trim() || !newDocContent.trim()) return;
-    addCanonDoc(newDocTitle.trim(), newDocContent.trim());
-    setNewDocTitle('');
-    setNewDocContent('');
+    return () => {
+      if (!isConversationModeActive) {
+        stopRecording();
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, [isConversationModeActive, isLoading, isSpeaking]);
+
+  // --- VOICE CHAT (WHISPER) ---
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+      audioChunksRef.current = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
+      };
+
+      recorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, {
+          type: 'audio/webm',
+        });
+        if (audioBlob.size > 1000) {
+          // Only transcribe if it's not a tiny accidental click
+          await handleTranscribe(audioBlob);
+        }
+        stream.getTracks().forEach((track) => track.stop());
+      };
+
+      recorder.start();
+      setIsRecording(true);
+
+      // Auto-stop after 5 seconds of silence or fixed duration for this prototype
+      // In a real app, you'd use a VAD (Voice Activity Detection) library
+      setTimeout(() => {
+        if (recorder.state === 'recording') {
+          recorder.stop();
+        }
+      }, 5000);
+    } catch (err) {
+      console.error('Mic Error:', err);
+      setIsConversationModeActive(false);
+    }
   };
 
-  const handleSaveSettings = () => {
-    saveSettings(editUserContext, editProjectConstraints);
-    setActiveView('chat');
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+    setIsRecording(false);
   };
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  const handleTranscribe = async (blob: Blob) => {
+    setIsLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', blob, 'audio.webm');
+
+      // Replace with your actual deployed function URL or local emulator URL
+      const functionUrl =
+        import.meta.env.VITE_TRANSCRIBE_URL ||
+        'https://transcribeaudio-703924325336.europe-west1.run.app'; // Placeholder
+
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (data.text) {
+        setInput(data.text);
+        // Automatically send the transcribed text
+        handleSend(data.text);
+      }
+    } catch (error) {
+      console.error('Transcription error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleToggleConversationMode = () => {
+    setIsConversationModeActive((prev) => !prev);
+    if (isConversationModeActive) {
+      stopRecording();
+      window.speechSynthesis.cancel();
+      setIsRecording(false);
+      setIsSpeaking(false);
+    }
+  };
+
+  const handleSend = async (overrideInput?: string) => {
+    const messageText = overrideInput || input;
+    if (!messageText.trim() || isLoading) return;
 
     const userMsg: Message = {
       id: crypto.randomUUID(),
       role: 'user',
-      text: input,
+      text: messageText,
     };
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
@@ -340,16 +441,32 @@ const GeminiSidebar: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         text: finalMessage,
       };
       setMessages((prev) => [...prev, modelMsg]);
+
+      // Speak the response
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(finalMessage);
+        utterance.onstart = () => setIsSpeaking(true);
+        utterance.onend = () => setIsSpeaking(false);
+        window.speechSynthesis.speak(utterance);
+      }
     } catch (error) {
       console.error('Gemini Error:', error);
+      const errorMsg = 'Connection error. Please check your API key.';
       setMessages((prev) => [
         ...prev,
         {
           id: crypto.randomUUID(),
           role: 'model',
-          text: 'Connection error. Please check your API key.',
+          text: errorMsg,
         },
       ]);
+      // Speak the error
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(errorMsg);
+        utterance.onstart = () => setIsSpeaking(true);
+        utterance.onend = () => setIsSpeaking(false);
+        window.speechSynthesis.speak(utterance);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -451,23 +568,55 @@ const GeminiSidebar: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             <div ref={messagesEndRef} />
           </div>
           <div className="p-4 bg-white border-t border-gray-200">
-            <div className="relative">
+            <div className="relative flex items-center">
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                placeholder="Ask for advice..."
-                disabled={isLoading}
-                className="w-full pl-4 pr-12 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm transition-all shadow-sm"
+                placeholder={
+                  isConversationModeActive
+                    ? isRecording
+                      ? 'Listening...'
+                      : isSpeaking
+                        ? 'Gemini is speaking...'
+                        : 'Starting...'
+                    : 'Ask for advice...'
+                }
+                disabled={isLoading || isConversationModeActive}
+                className="w-full pl-4 pr-20 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm transition-all shadow-sm disabled:bg-gray-100"
               />
-              <button
-                onClick={handleSend}
-                disabled={!input.trim() || isLoading}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <Send size={16} />
-              </button>
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center">
+                <button
+                  onClick={handleToggleConversationMode}
+                  disabled={isLoading}
+                  className={`p-1.5 rounded-md transition-colors ${
+                    isConversationModeActive
+                      ? 'bg-red-100 text-red-600 hover:bg-red-200'
+                      : 'text-gray-500 hover:text-indigo-600'
+                  }`}
+                  title={
+                    isConversationModeActive
+                      ? 'Stop Conversation'
+                      : 'Start Conversation'
+                  }
+                >
+                  {isConversationModeActive ? (
+                    <MicOff size={16} />
+                  ) : (
+                    <Mic size={16} />
+                  )}
+                </button>
+                <button
+                  onClick={handleSend}
+                  disabled={
+                    !input.trim() || isLoading || isConversationModeActive
+                  }
+                  className="ml-1 p-1.5 text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <Send size={16} />
+                </button>
+              </div>
             </div>
           </div>
         </>

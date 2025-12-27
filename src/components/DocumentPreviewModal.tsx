@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Download, ExternalLink } from 'lucide-react';
+import { getBlob, ref } from 'firebase/storage';
+import { storage } from '../firebaseConfig';
 import type { DocumentMeta } from '../documentStore';
 
 interface DocumentPreviewModalProps {
@@ -16,26 +18,39 @@ export default function DocumentPreviewModal({
 }: DocumentPreviewModalProps) {
   const [textContent, setTextContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
 
   const isImage = IMAGE_EXTENSIONS.includes(doc.fileType);
   const isText = TEXT_EXTENSIONS.includes(doc.fileType);
+  const isPdf = doc.fileType === 'pdf';
+  const contextParts = [doc.page, doc.section, doc.tab].filter(Boolean);
+  const tags = doc.tags ?? [];
 
   useEffect(() => {
+    let isActive = true;
     if (isText) {
       setLoading(true);
-      fetch(doc.storageUrl)
-        .then((res) => res.text())
+      setLoadError(null);
+      const storagePath = `documents/${doc.id}-${doc.filename}`;
+      const storageRef = ref(storage, storagePath);
+      getBlob(storageRef)
+        .then((blob) => blob.text())
         .then((text) => {
+          if (!isActive) return;
           setTextContent(text);
           setLoading(false);
         })
         .catch((err) => {
           console.error('Failed to load text content:', err);
-          setTextContent('Failed to load content');
+          if (!isActive) return;
+          setLoadError('Preview unavailable. Use Open or Download.');
           setLoading(false);
         });
     }
+    return () => {
+      isActive = false;
+    };
   }, [doc, isText]);
 
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -55,9 +70,35 @@ export default function DocumentPreviewModal({
       >
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-          <h2 className="text-lg font-semibold text-slate-800 truncate">
-            {doc.filename}
-          </h2>
+          <div className="min-w-0">
+            <h2 className="text-lg font-semibold text-slate-800 truncate">
+              {doc.filename}
+            </h2>
+            {doc.summary && (
+              <p className="text-xs text-blue-600 font-medium italic mt-0.5 line-clamp-1">
+                {doc.summary}
+              </p>
+            )}
+            {(contextParts.length > 0 || tags.length > 0) && (
+              <div className="mt-1 flex flex-wrap gap-2 text-xs text-slate-500">
+                {contextParts.length > 0 && (
+                  <span>{contextParts.join(' • ')}</span>
+                )}
+                {tags.length > 0 && (
+                  <span className="flex flex-wrap gap-1">
+                    {tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-600"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             <a
               href={doc.storageUrl}
@@ -97,11 +138,16 @@ export default function DocumentPreviewModal({
 
           {isText && (
             <div className="w-full h-full bg-white rounded-lg border border-slate-200 p-6 overflow-auto">
-              {loading ? (
+              {loading && (
                 <div className="text-center text-slate-400">Loading...</div>
-              ) : doc.fileType === 'html' ? (
+              )}
+              {!loading && loadError && (
+                <div className="text-center text-slate-500">{loadError}</div>
+              )}
+              {!loading && !loadError && doc.fileType === 'html' && (
                 <div dangerouslySetInnerHTML={{ __html: textContent || '' }} />
-              ) : (
+              )}
+              {!loading && !loadError && doc.fileType !== 'html' && (
                 <pre className="whitespace-pre-wrap text-sm text-slate-700 font-mono">
                   {textContent}
                 </pre>
@@ -109,7 +155,15 @@ export default function DocumentPreviewModal({
             </div>
           )}
 
-          {!isImage && !isText && (
+          {isPdf && (
+            <iframe
+              src={`${doc.storageUrl}#toolbar=0`}
+              className="w-full h-full rounded-lg shadow-lg bg-white"
+              title={doc.filename}
+            />
+          )}
+
+          {!isImage && !isText && !isPdf && (
             <div className="text-center">
               <p className="text-slate-500 mb-4">
                 Preview not available for this file type.

@@ -107,6 +107,10 @@ export default function DocumentPickerModal({
           <div className="grid grid-cols-1 gap-2">
             {filteredDocs.map((doc) => {
               const isLinked = linkedDocIds.includes(doc.id);
+              const contextParts = [doc.page, doc.section, doc.tab].filter(
+                Boolean
+              );
+              const tags = doc.tags ?? [];
               return (
                 <button
                   key={doc.id}
@@ -135,6 +139,28 @@ export default function DocumentPickerModal({
                     <p className="text-sm font-medium text-slate-800 truncate">
                       {doc.filename}
                     </p>
+                    {contextParts.length > 0 && (
+                      <p className="text-[11px] text-slate-400 truncate">
+                        {contextParts.join(' • ')}
+                      </p>
+                    )}
+                    {tags.length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {tags.slice(0, 3).map((tag) => (
+                          <span
+                            key={tag}
+                            className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                        {tags.length > 3 && (
+                          <span className="text-[10px] text-slate-400">
+                            +{tags.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    )}
                     <p className="text-xs text-slate-400">
                       {new Date(doc.uploadedAt).toLocaleDateString()}
                     </p>

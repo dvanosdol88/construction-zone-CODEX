@@ -25,8 +25,14 @@ export interface DocumentMeta {
   size: number;
   uploadedAt: number;
   storageUrl: string;
+  thumbnailUrl?: string;
   linkedCards: string[];
   isCanonical: boolean;
+  page?: string;
+  section?: string;
+  tab?: string;
+  tags?: string[];
+  summary?: string;
 }
 
 /**
@@ -40,10 +46,22 @@ function getFileExtension(filename: string): string {
 /**
  * Upload a document to Firebase Storage and save metadata to Firestore
  */
-export async function uploadDocument(file: File): Promise<DocumentMeta> {
+export async function uploadDocument(
+  file: File,
+  metadata?: {
+    page?: string;
+    section?: string;
+    tab?: string;
+    tags?: string[];
+    summary?: string;
+    thumbnailUrl?: string;
+  }
+): Promise<DocumentMeta> {
   const id = crypto.randomUUID();
   const storagePath = `documents/${id}-${file.name}`;
   const storageRef = ref(storage, storagePath);
+  const trimmedTags =
+    metadata?.tags?.map((tag) => tag.trim()).filter(Boolean) ?? [];
 
   try {
     // Upload file to Storage
@@ -58,8 +76,14 @@ export async function uploadDocument(file: File): Promise<DocumentMeta> {
       size: file.size,
       uploadedAt: Date.now(),
       storageUrl,
+      thumbnailUrl: metadata?.thumbnailUrl,
       linkedCards: [],
       isCanonical: false,
+      page: metadata?.page?.trim() || undefined,
+      section: metadata?.section?.trim() || undefined,
+      tab: metadata?.tab?.trim() || undefined,
+      tags: trimmedTags,
+      summary: metadata?.summary?.trim() || undefined,
     };
 
     // Save to Firestore

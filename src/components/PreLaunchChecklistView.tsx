@@ -563,7 +563,7 @@ export default function PreLaunchChecklistView() {
   return (
     <div className="flex h-full overflow-hidden gap-4">
       {/* Left sidebar - Page navigation */}
-      <div className="w-52 bg-white border-r border-gray-200 overflow-y-auto pr-2">
+      <div className="w-52 bg-white border-r border-gray-200 overflow-y-auto no-scrollbar overflow-x-hidden pr-2">
         <div className="p-4 border-b border-gray-200">
           <h2 className="text-lg font-bold text-slate-900">
             Pre-Launch Checklist

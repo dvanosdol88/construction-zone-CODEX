@@ -1,11 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Search, Upload, Loader2, AlertCircle, FolderOpen } from 'lucide-react';
 import { useDocumentStore, DocumentMeta } from '../documentStore';
 import DocumentCard from './DocumentCard';
 import DocumentPreviewModal from './DocumentPreviewModal';
+import UploadDocumentModal from './UploadDocumentModal';
 
 export default function DocumentsView() {
   const {
+    documents,
     isLoading,
     error,
     searchQuery,
@@ -16,11 +18,18 @@ export default function DocumentsView() {
     toggleCanonical,
     getCanonicalDocuments,
     getNonCanonicalDocuments,
+    getRecentTags,
   } = useDocumentStore();
 
   const [previewDoc, setPreviewDoc] = useState<DocumentMeta | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const recentTags = useMemo(() => getRecentTags(), [documents, getRecentTags]);
+  const existingDocNames = useMemo(
+    () => documents.map((doc) => doc.filename),
+    [documents]
+  );
 
   useEffect(() => {
     loadDocuments();
@@ -37,18 +46,15 @@ export default function DocumentsView() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setUploading(true);
-    await uploadDocument(file);
-    setUploading(false);
-
-    // Reset input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    setPendingFile(file);
   };
 
   const handleDelete = async (doc: DocumentMeta) => {
-    if (confirm(`Delete "${doc.filename.replace(/"/g, '\\"')}"? This cannot be undone.`)) {
+    if (
+      confirm(
+        `Delete "${doc.filename.replace(/"/g, '\\"')}"? This cannot be undone.`
+      )
+    ) {
       await deleteDocument(doc);
     }
   };
@@ -208,6 +214,30 @@ export default function DocumentsView() {
           <DocumentPreviewModal
             doc={previewDoc}
             onClose={() => setPreviewDoc(null)}
+          />
+        )}
+
+        {pendingFile && (
+          <UploadDocumentModal
+            file={pendingFile}
+            recentTags={recentTags}
+            existingDocNames={existingDocNames}
+            isUploading={uploading}
+            onCancel={() => {
+              setPendingFile(null);
+              if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+              }
+            }}
+            onConfirm={async (metadata) => {
+              setUploading(true);
+              await uploadDocument(pendingFile, metadata);
+              setUploading(false);
+              setPendingFile(null);
+              if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+              }
+            }}
           />
         )}
       </div>

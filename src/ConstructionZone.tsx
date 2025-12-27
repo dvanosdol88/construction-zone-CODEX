@@ -516,7 +516,7 @@ export default function ConstructionZone() {
       {/* Lighter Top Navbar */}
       <header className="bg-slate-500 text-white py-0 flex items-center justify-between shadow-md z-20">
         <div className="flex items-center overflow-x-auto no-scrollbar">
-          <div className="font-bold text-lg py-4 w-52 pl-6 border-r border-slate-400 whitespace-nowrap">
+          <div className="font-bold text-lg py-4 w-52 shrink-0 pl-6 border-r border-slate-400 whitespace-nowrap">
             RIA Builder
           </div>
           <div className="flex gap-1">
@@ -562,7 +562,7 @@ export default function ConstructionZone() {
 
       <div className="flex-1 flex overflow-hidden">
         {/* Left Sidebar - Always visible */}
-        <nav className="w-52 bg-gray-50 border-r border-gray-200 flex flex-col pt-6 pb-4 overflow-y-auto">
+        <nav className="w-52 shrink-0 bg-gray-50 border-r border-gray-200 flex flex-col pt-6 pb-4 overflow-y-auto no-scrollbar overflow-x-hidden">
           {/* Page Navigation (only in construction view) */}
           {activeView === 'construction' && (
             <div className="space-y-1 px-3 flex-1">

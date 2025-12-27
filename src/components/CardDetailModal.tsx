@@ -333,6 +333,30 @@ export default function CardDetailModal({
                       <p className="text-sm font-medium text-slate-700 truncate">
                         {doc.filename}
                       </p>
+                      {(doc.page || doc.section || doc.tab) && (
+                        <p className="text-[11px] text-slate-400 truncate">
+                          {[doc.page, doc.section, doc.tab]
+                            .filter(Boolean)
+                            .join(' • ')}
+                        </p>
+                      )}
+                      {(doc.tags ?? []).length > 0 && (
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {(doc.tags ?? []).slice(0, 3).map((tag) => (
+                            <span
+                              key={tag}
+                              className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                          {(doc.tags ?? []).length > 3 && (
+                            <span className="text-[10px] text-slate-400">
+                              +{(doc.tags ?? []).length - 3}
+                            </span>
+                          )}
+                        </div>
+                      )}
                       <p className="text-xs text-slate-400">
                         {new Date(doc.uploadedAt).toLocaleDateString()}
                       </p>

@@ -8,12 +8,23 @@ interface DocumentStore {
   documents: DocumentMeta[];
   isLoading: boolean;
   error: string | null;
+  uploadError: string | null;
   searchQuery: string;
 
   // Actions
   setSearchQuery: (query: string) => void;
   loadDocuments: () => Promise<void>;
-  uploadDocument: (file: File) => Promise<DocumentMeta | null>;
+  uploadDocument: (
+    file: File,
+    metadata?: {
+      page?: string;
+      section?: string;
+      tab?: string;
+      tags?: string[];
+      summary?: string;
+      thumbnailUrl?: string;
+    }
+  ) => Promise<DocumentMeta | null>;
   deleteDocument: (doc: DocumentMeta) => Promise<void>;
   toggleCanonical: (id: string) => Promise<void>;
   linkToCard: (docId: string, cardId: string) => Promise<void>;
@@ -23,12 +34,14 @@ interface DocumentStore {
   getCanonicalDocuments: () => DocumentMeta[];
   getFilteredDocuments: () => DocumentMeta[];
   getNonCanonicalDocuments: () => DocumentMeta[];
+  getRecentTags: (limit?: number) => string[];
 }
 
 export const useDocumentStore = create<DocumentStore>()((set, get) => ({
   documents: [],
   isLoading: true,
   error: null,
+  uploadError: null,
   searchQuery: '',
 
   setSearchQuery: (searchQuery) => set({ searchQuery }),
@@ -47,15 +60,17 @@ export const useDocumentStore = create<DocumentStore>()((set, get) => ({
     }
   },
 
-  uploadDocument: async (file) => {
+  uploadDocument: async (file, metadata) => {
+    set({ uploadError: null });
     try {
-      const docMeta = await documentService.uploadDocument(file);
+      const docMeta = await documentService.uploadDocument(file, metadata);
       set((state) => ({
         documents: [docMeta, ...state.documents],
       }));
       return docMeta;
     } catch (error) {
       console.error('Failed to upload document:', error);
+      set({ uploadError: 'Failed to upload document. Please try again.' });
       return null;
     }
   },
@@ -156,11 +171,15 @@ export const useDocumentStore = create<DocumentStore>()((set, get) => ({
 
   getCanonicalDocuments: () => {
     const { documents, searchQuery } = get();
+    const normalizedQuery = searchQuery.trim().toLowerCase();
     return documents
       .filter((d) => d.isCanonical)
       .filter((d) =>
-        searchQuery
-          ? d.filename.toLowerCase().includes(searchQuery.toLowerCase())
+        normalizedQuery
+          ? d.filename.toLowerCase().includes(normalizedQuery) ||
+            (d.tags ?? []).some((tag) =>
+              tag.toLowerCase().includes(normalizedQuery)
+            )
           : true
       )
       .sort((a, b) => b.uploadedAt - a.uploadedAt);
@@ -168,11 +187,15 @@ export const useDocumentStore = create<DocumentStore>()((set, get) => ({
 
   getNonCanonicalDocuments: () => {
     const { documents, searchQuery } = get();
+    const normalizedQuery = searchQuery.trim().toLowerCase();
     return documents
       .filter((d) => !d.isCanonical)
       .filter((d) =>
-        searchQuery
-          ? d.filename.toLowerCase().includes(searchQuery.toLowerCase())
+        normalizedQuery
+          ? d.filename.toLowerCase().includes(normalizedQuery) ||
+            (d.tags ?? []).some((tag) =>
+              tag.toLowerCase().includes(normalizedQuery)
+            )
           : true
       )
       .sort((a, b) => b.uploadedAt - a.uploadedAt);
@@ -180,12 +203,35 @@ export const useDocumentStore = create<DocumentStore>()((set, get) => ({
 
   getFilteredDocuments: () => {
     const { documents, searchQuery } = get();
+    const normalizedQuery = searchQuery.trim().toLowerCase();
     return documents
       .filter((d) =>
-        searchQuery
-          ? d.filename.toLowerCase().includes(searchQuery.toLowerCase())
+        normalizedQuery
+          ? d.filename.toLowerCase().includes(normalizedQuery) ||
+            (d.tags ?? []).some((tag) =>
+              tag.toLowerCase().includes(normalizedQuery)
+            )
           : true
       )
       .sort((a, b) => b.uploadedAt - a.uploadedAt);
+  },
+  getRecentTags: (limit = 8) => {
+    const { documents } = get();
+    const ordered = [...documents].sort((a, b) => b.uploadedAt - a.uploadedAt);
+    const tags: string[] = [];
+
+    for (const doc of ordered) {
+      const docTags = doc.tags ?? [];
+      for (const tag of docTags) {
+        if (!tags.includes(tag)) {
+          tags.push(tag);
+        }
+        if (tags.length >= limit) {
+          return tags;
+        }
+      }
+    }
+
+    return tags;
   },
 }));

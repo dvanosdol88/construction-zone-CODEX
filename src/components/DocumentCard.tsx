@@ -46,6 +46,11 @@ function formatDate(timestamp: number | undefined): string {
   });
 }
 
+function formatContext(doc: DocumentMeta): string | null {
+  const parts = [doc.page, doc.section, doc.tab].filter(Boolean);
+  return parts.length > 0 ? parts.join(' • ') : null;
+}
+
 export default function DocumentCard({
   doc,
   onToggleCanonical,
@@ -57,6 +62,8 @@ export default function DocumentCard({
   const isPreviewable =
     IMAGE_EXTENSIONS.includes(doc.fileType) ||
     TEXT_EXTENSIONS.includes(doc.fileType);
+  const tags = doc.tags ?? [];
+  const context = formatContext(doc);
 
   return (
     <div
@@ -69,7 +76,13 @@ export default function DocumentCard({
       <div
         className={`${compact ? 'h-28' : 'h-36'} bg-slate-50 rounded-t-lg flex items-center justify-center overflow-hidden relative`}
       >
-        {isImage ? (
+        {doc.thumbnailUrl ? (
+          <img
+            src={doc.thumbnailUrl}
+            alt={doc.filename}
+            className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+          />
+        ) : isImage ? (
           <img
             src={doc.storageUrl}
             alt={doc.filename}
@@ -140,6 +153,33 @@ export default function DocumentCard({
             {formatFileSize(doc.size || 0)}
           </span>
         </div>
+        {context && (
+          <div className="mt-2 text-xs text-slate-500 truncate" title={context}>
+            {context}
+          </div>
+        )}
+        {!compact && doc.summary && (
+          <p className="mt-2 text-[10px] text-slate-500 line-clamp-2 italic leading-relaxed">
+            {doc.summary}
+          </p>
+        )}
+        {tags.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {tags.slice(0, 3).map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500"
+              >
+                {tag}
+              </span>
+            ))}
+            {tags.length > 3 && (
+              <span className="text-[10px] text-slate-400">
+                +{tags.length - 3}
+              </span>
+            )}
+          </div>
+        )}
         {(doc.linkedCards?.length ?? 0) > 0 && (
           <div className="flex items-center gap-1 mt-2 text-xs text-blue-600">
             <Link2 size={12} />
